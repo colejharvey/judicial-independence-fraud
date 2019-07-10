@@ -1,5 +1,5 @@
 ###Analysis script
-###Additive index of lagged HC and LC independence using VDEM measure
+###Vdem jucon measure (balancing)
 ###July 2019
 rm(list = setdiff(ls(), lsf.str())) #Remove all except functions
 
@@ -18,7 +18,6 @@ library(Zelig)
 vdem.nodems <- read.csv("./vdem-2018-no-dems-post1945-polity-sept2018-condensed.csv")
 vdem.nodems$comp_by_oppaut <- scale(vdem.nodems$e_van_comp.lag * vdem.nodems$oppaut.lag)
 vdem.nodems$ss.diff.lag <- vdem.nodems$lowchamb.seatshare.largest.lag - vdem.nodems$lowchamb.second.seatshare.lag
-vdem.nodems$ss.diff.lag.inv <- 100 - vdem.nodems$ss.diff.lag
 
 vdem.nodems$polcomp.lag2 <- vdem.nodems$polcomp.lag
 vdem.nodems$polcomp.lag2[vdem.nodems$polcomp.lag == -77] <- 0
@@ -36,81 +35,12 @@ vdem.nodems$regtrans2.lag <- vdem.nodems$regtrans.lag
 vdem.nodems$regtrans2.lag[vdem.nodems$regtrans.lag < -2 | vdem.nodems$regtrans.lag > 3] <- NA
 
 
-vdem.nodems$ji.addindex <- vdem.nodems$hc.ind.lag + vdem.nodems$lc.ind.lag
-
 ###Un-processed data models
 ##Irregularities first, followed by govt intimidation
 
-##Seat share
-
-
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + ss.diff.lag.inv +
-                               elexec + #e_peaveduc+ 
-                               e_polity2 +
-                               e_migdppcln + 
-                               e_miurbani + 
-                               v2eldommon + 
-                               log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.base.raw)
-
-mm.elirreg.ss.raw <- lmer(v2elirreg.inv~ji.addindex + ss.diff.lag.inv + 
-                               ji.addindex:ss.diff.lag.inv +
-                               elexec + #e_peaveduc+ 
-                               e_polity2 +
-                               e_migdppcln + 
-                               e_miurbani + 
-                               v2eldommon + 
-                               log(e_mipopula) 
-                            + transitional + altinfo.lag
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.ss.raw)
-
-lrtest(mm.elirreg.base.raw, mm.elirreg.ss.raw)
-interplot(mm.elirreg.ss.raw, var1="ji.addindex", var2="ss.diff.lag.inv") #No interaction
-
-####
-
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + ss.diff.lag.inv +
-                               elexec + #e_peaveduc+ 
-                               e_polity2 +
-                               e_migdppcln + 
-                               e_miurbani + 
-                               v2eldommon + 
-                               log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.base.raw)
-
-mm.elintim.ss.raw <- lmer(v2elintim.inv~ji.addindex + ss.diff.lag.inv + 
-                               ji.addindex:ss.diff.lag.inv +
-                               elexec + #e_peaveduc+ 
-                               e_polity2 +
-                               e_migdppcln + 
-                               e_miurbani + 
-                               v2eldommon + 
-                               log(e_mipopula) 
-                            + transitional + altinfo.lag
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.ss.raw)
-
-lrtest(mm.elintim.base.raw, mm.elintim.ccsi.raw)
-interplot(mm.elintim.ss.raw, var1="ji.addindex", var2="ss.diff.lag.inv") #No interaction
-
-
-
 
 ##Core civil society
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + core.civil.society.lag +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + v2xcs_ccsi +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -123,8 +53,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + core.civil.society.lag +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.ccsi.raw <- lmer(v2elirreg.inv~ji.addindex + core.civil.society.lag + 
-                              ji.addindex:core.civil.society.lag +
+mm.elirreg.ccsi.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + v2xcs_ccsi + 
+                              vdem.jucon.lag:v2xcs_ccsi +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -138,11 +68,11 @@ mm.elirreg.ccsi.raw <- lmer(v2elirreg.inv~ji.addindex + core.civil.society.lag +
 summary(mm.elirreg.ccsi.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.ccsi.raw)
-interplot(mm.elirreg.ccsi.raw, var1="ji.addindex", var2="core.civil.society.lag") #Higher CS + JI = less irreg
+interplot(mm.elirreg.ccsi.raw, var1="vdem.jucon.lag", var2="v2xcs_ccsi")  #No interaction
 
-    ####
+####
 
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + core.civil.society.lag +
+mm.elintim.base.raw <- lmer(v2elintim.inv~vdem.jucon.lag + v2xcs_ccsi +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -155,8 +85,8 @@ mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + core.civil.society.lag +
                             data = vdem.nodems)
 summary(mm.elintim.base.raw)
 
-mm.elintim.ccsi.raw <- lmer(v2elintim.inv~ji.addindex + core.civil.society.lag + 
-                              ji.addindex:core.civil.society.lag +
+mm.elintim.ccsi.raw <- lmer(v2elintim.inv~vdem.jucon.lag + v2xcs_ccsi + 
+                              vdem.jucon.lag:v2xcs_ccsi +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -170,15 +100,17 @@ mm.elintim.ccsi.raw <- lmer(v2elintim.inv~ji.addindex + core.civil.society.lag +
 summary(mm.elintim.ccsi.raw)
 
 lrtest(mm.elintim.base.raw, mm.elintim.ccsi.raw)
-interplot(mm.elintim.ccsi.raw, var1="ji.addindex", var2="core.civil.society.lag") #When CC independence is high, more JI -> less intimidation
+interplot(mm.elintim.ccsi.raw, var1="vdem.jucon.lag", var2="v2xcs_ccsi") #When CC independence is high, more JI = less intim
 
 
 
 
 
 
-##Engaged society
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + engaged.society.lag +
+
+
+##Lagged lower house seat second place share 
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + lowchamb.second.seatshare.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -191,8 +123,69 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + engaged.society.lag +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.engaged.raw <- lmer(v2elirreg.inv~ji.addindex + engaged.society.lag + 
-                                 ji.addindex:engaged.society.lag +
+mm.elirreg.ss.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + lowchamb.second.seatshare.lag + 
+                            vdem.jucon.lag:lowchamb.second.seatshare.lag +
+                            elexec + #e_peaveduc+ 
+                            e_polity2 +
+                            e_migdppcln + 
+                            e_miurbani + 
+                            v2eldommon + 
+                            log(e_mipopula) 
+                          + transitional + altinfo.lag
+                          
+                          + (1 | COWcode), REML=FALSE,
+                          data = vdem.nodems)
+summary(mm.elirreg.ss.raw)
+
+lrtest(mm.elirreg.base.raw, mm.elirreg.ss.raw)
+
+  ###
+
+mm.elintim.base.raw <- lmer(v2elintim.inv~vdem.jucon.lag + lowchamb.second.seatshare.lag +
+                              elexec + #e_peaveduc+ 
+                              e_polity2 +
+                              e_migdppcln + 
+                              e_miurbani + 
+                              v2eldommon + 
+                              log(e_mipopula) 
+                            + transitional + altinfo.lag 
+                            
+                            + (1 | COWcode), REML=FALSE,
+                            data = vdem.nodems)
+summary(mm.elintim.base.raw)
+
+mm.elintim.ss.raw <- lmer(v2elintim.inv~vdem.jucon.lag + lowchamb.second.seatshare.lag + 
+                            vdem.jucon.lag:lowchamb.second.seatshare.lag +
+                            elexec + #e_peaveduc+ 
+                            e_polity2 +
+                            e_migdppcln + 
+                            e_miurbani + 
+                            v2eldommon + 
+                            log(e_mipopula) 
+                          + transitional + altinfo.lag
+                          
+                          + (1 | COWcode), REML=FALSE,
+                          data = vdem.nodems)
+summary(mm.elintim.ss.raw)
+
+lrtest(mm.elintim.base.raw, mm.elintim.ss.raw)
+
+##Engaged society
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + engaged.society.lag +
+                              elexec + #e_peaveduc+ 
+                              e_polity2 +
+                              e_migdppcln + 
+                              e_miurbani + 
+                              v2eldommon + 
+                              log(e_mipopula) 
+                            + transitional + altinfo.lag 
+                            
+                            + (1 | COWcode), REML=FALSE,
+                            data = vdem.nodems)
+summary(mm.elirreg.base.raw)
+
+mm.elirreg.engaged.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + engaged.society.lag + 
+                                 vdem.jucon.lag:engaged.society.lag +
                                  elexec + #e_peaveduc+ 
                                  e_polity2 +
                                  e_migdppcln + 
@@ -206,11 +199,11 @@ mm.elirreg.engaged.raw <- lmer(v2elirreg.inv~ji.addindex + engaged.society.lag +
 summary(mm.elirreg.engaged.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.engaged.raw)
-interplot(mm.elirreg.engaged.raw, var1="ji.addindex", var2="engaged.society.lag") #When engaged society is low, more independence = less irregularities
+interplot(mm.elirreg.engaged.raw, var1="vdem.jucon.lag", var2="engaged.society.lag") #No interaction effect
 
-   ###
+###
 
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + engaged.society.lag +
+mm.elintim.base.raw <- lmer(v2elintim.inv~vdem.jucon.lag + engaged.society.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -223,8 +216,8 @@ mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + engaged.society.lag +
                             data = vdem.nodems)
 summary(mm.elintim.base.raw)
 
-mm.elintim.engaged.raw <- lmer(v2elintim.inv~ji.addindex + engaged.society.lag + 
-                                 ji.addindex:engaged.society.lag +
+mm.elintim.engaged.raw <- lmer(v2elintim.inv~vdem.jucon.lag + engaged.society.lag + 
+                                 vdem.jucon.lag:engaged.society.lag +
                                  elexec + #e_peaveduc+ 
                                  e_polity2 +
                                  e_migdppcln + 
@@ -238,12 +231,12 @@ mm.elintim.engaged.raw <- lmer(v2elintim.inv~ji.addindex + engaged.society.lag +
 summary(mm.elintim.engaged.raw)
 
 lrtest(mm.elintim.base.raw, mm.elintim.engaged.raw)
-interplot(mm.elintim.engaged.raw, var1="ji.addindex", var2="engaged.society.lag") #No interaction
+interplot(mm.elintim.engaged.raw, var1="vdem.jucon.lag", var2="engaged.society.lag") #No convincing interaction
 
 
 
 ##State owernship of economy
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + v2clstown +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + v2clstown +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -256,8 +249,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + v2clstown +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.stown.raw <- lmer(v2elirreg.inv~ji.addindex + v2clstown + 
-                               ji.addindex:v2clstown +
+mm.elirreg.stown.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + v2clstown + 
+                               vdem.jucon.lag:v2clstown +
                                elexec + #e_peaveduc+ 
                                e_polity2 +
                                e_migdppcln + 
@@ -271,11 +264,11 @@ mm.elirreg.stown.raw <- lmer(v2elirreg.inv~ji.addindex + v2clstown +
 summary(mm.elirreg.stown.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.stown.raw)
-interplot(mm.elirreg.stown.raw, var1="ji.addindex", var2="v2clstown")  #High private enterprise + JI = less irreg (sort of)
+interplot(mm.elirreg.stown.raw, var1="vdem.jucon.lag", var2="v2clstown")  #No interaction
 
-   ###
+###
 
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + v2clstown +
+mm.elintim.base.raw <- lmer(v2elintim.inv~vdem.jucon.lag + v2clstown +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -288,8 +281,8 @@ mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + v2clstown +
                             data = vdem.nodems)
 summary(mm.elintim.base.raw)
 
-mm.elintim.stown.raw <- lmer(v2elintim.inv~ji.addindex + v2clstown + 
-                               ji.addindex:v2clstown +
+mm.elintim.stown.raw <- lmer(v2elintim.inv~vdem.jucon.lag + v2clstown + 
+                               vdem.jucon.lag:v2clstown +
                                elexec + #e_peaveduc+ 
                                e_polity2 +
                                e_migdppcln + 
@@ -303,13 +296,13 @@ mm.elintim.stown.raw <- lmer(v2elintim.inv~ji.addindex + v2clstown +
 summary(mm.elintim.stown.raw)
 
 lrtest(mm.elintim.base.raw, mm.elintim.stown.raw)
-interplot(mm.elintim.stown.raw, var1="ji.addindex", var2="v2clstown")  #Low state ownership + JI = less violence (sort of)
+interplot(mm.elintim.stown.raw, var1="vdem.jucon.lag", var2="v2clstown")  #High state ownership + JI = less violence
 
 
 
 
 ##Opposition oversight
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + opposition.oversight.lag +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + opposition.oversight.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -322,8 +315,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + opposition.oversight.lag
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.oppart.raw <- lmer(v2elirreg.inv~ji.addindex + opposition.oversight.lag + 
-                                ji.addindex:opposition.oversight.lag +
+mm.elirreg.oppart.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + opposition.oversight.lag + 
+                                vdem.jucon.lag:opposition.oversight.lag +
                                 elexec + #e_peaveduc+ 
                                 e_polity2 +
                                 e_migdppcln + 
@@ -337,43 +330,14 @@ mm.elirreg.oppart.raw <- lmer(v2elirreg.inv~ji.addindex + opposition.oversight.l
 summary(mm.elirreg.oppart.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.oppart.raw)
-interplot(mm.elirreg.oppart.raw, var1="ji.addindex", var2="opposition.oversight.lag")  #No interaction
+interplot(mm.elirreg.oppart.raw, var1="vdem.jucon.lag", var2="opposition.oversight.lag")  #No interaction
 
-  ###
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + opposition.oversight.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.base.raw)
 
-mm.elintim.oppart.raw <- lmer(v2elintim.inv~ji.addindex + opposition.oversight.lag + 
-                                ji.addindex:opposition.oversight.lag +
-                                elexec + #e_peaveduc+ 
-                                e_polity2 +
-                                e_migdppcln + 
-                                e_miurbani + 
-                                v2eldommon + 
-                                log(e_mipopula) 
-                              + transitional + altinfo.lag
-                              
-                              + (1 | COWcode), REML=FALSE,
-                              data = vdem.nodems)
-summary(mm.elintim.oppart.raw)
-
-lrtest(mm.elintim.base.raw, mm.elintim.oppart.raw)
-interplot(mm.elintim.oppart.raw, var1="ji.addindex", var2="opposition.oversight.lag")  #More oversight + JI = reduced violence
 
 
 
 ##Comp
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + e_van_comp.lag +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + e_van_comp.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -386,8 +350,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + e_van_comp.lag +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.comp.raw <- lmer(v2elirreg.inv~ji.addindex + e_van_comp.lag + 
-                              ji.addindex:e_van_comp.lag +
+mm.elirreg.comp.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + e_van_comp.lag + 
+                              vdem.jucon.lag:e_van_comp.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -401,12 +365,12 @@ mm.elirreg.comp.raw <- lmer(v2elirreg.inv~ji.addindex + e_van_comp.lag +
 summary(mm.elirreg.comp.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.comp.raw)
-interplot(mm.elirreg.comp.raw, var1="ji.addindex", var2="e_van_comp.lag") #No interaction
+interplot(mm.elirreg.comp.raw, var1="vdem.jucon.lag", var2="e_van_comp.lag") #No interaction
 
 
-   ####
+####
 
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + e_van_comp.lag +
+mm.elintim.base.raw <- lmer(v2elintim.inv~vdem.jucon.lag + e_van_comp.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -419,8 +383,8 @@ mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + e_van_comp.lag +
                             data = vdem.nodems)
 summary(mm.elintim.base.raw)
 
-mm.elintim.comp.raw <- lmer(v2elintim.inv~ji.addindex + e_van_comp.lag + 
-                              ji.addindex:e_van_comp.lag +
+mm.elintim.comp.raw <- lmer(v2elintim.inv~vdem.jucon.lag + e_van_comp.lag + 
+                              vdem.jucon.lag:e_van_comp.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -434,13 +398,13 @@ mm.elintim.comp.raw <- lmer(v2elintim.inv~ji.addindex + e_van_comp.lag +
 summary(mm.elintim.comp.raw)
 
 lrtest(mm.elintim.base.raw, mm.elintim.comp.raw)
-interplot(mm.elintim.comp.raw, var1="ji.addindex", var2="e_van_comp.lag") #No interaction
+interplot(mm.elintim.comp.raw, var1="vdem.jucon.lag", var2="e_van_comp.lag") #No interaction
 
 
 
 
 ##regtrans
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + regtrans2.lag +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + regtrans2.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -453,8 +417,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + regtrans2.lag +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.regtrans.raw <- lmer(v2elirreg.inv~ji.addindex + regtrans2.lag + 
-                                  ji.addindex:regtrans2.lag +
+mm.elirreg.regtrans.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + regtrans2.lag + 
+                                  vdem.jucon.lag:regtrans2.lag +
                                   elexec + #e_peaveduc+ 
                                   e_polity2 +
                                   e_migdppcln + 
@@ -468,11 +432,11 @@ mm.elirreg.regtrans.raw <- lmer(v2elirreg.inv~ji.addindex + regtrans2.lag +
 summary(mm.elirreg.regtrans.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.regtrans.raw)
-interplot(mm.elirreg.regtrans.raw, var1="ji.addindex", var2="regtrans2.lag") #No interaction
+interplot(mm.elirreg.regtrans.raw, var1="vdem.jucon.lag", var2="regtrans2.lag") #No interaction
 
-   ###
+###
 
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + regtrans2.lag +
+mm.elintim.base.raw <- lmer(v2elintim.inv~vdem.jucon.lag + regtrans2.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -485,8 +449,8 @@ mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + regtrans2.lag +
                             data = vdem.nodems)
 summary(mm.elintim.base.raw)
 
-mm.elintim.regtrans.raw <- lmer(v2elintim.inv~ji.addindex + regtrans2.lag + 
-                                  ji.addindex:regtrans2.lag +
+mm.elintim.regtrans.raw <- lmer(v2elintim.inv~vdem.jucon.lag + regtrans2.lag + 
+                                  vdem.jucon.lag:regtrans2.lag +
                                   elexec + #e_peaveduc+ 
                                   e_polity2 +
                                   e_migdppcln + 
@@ -500,13 +464,13 @@ mm.elintim.regtrans.raw <- lmer(v2elintim.inv~ji.addindex + regtrans2.lag +
 summary(mm.elintim.regtrans.raw)
 
 lrtest(mm.elintim.base.raw, mm.elintim.regtrans.raw)
-interplot(mm.elintim.regtrans.raw, var1="ji.addindex", var2="regtrans2.lag") #No interaction relationship
+interplot(mm.elintim.regtrans.raw, var1="vdem.jucon.lag", var2="regtrans2.lag") #No effect
 
 
 
 ##parcomp2
 
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + parcomp2.lag +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + parcomp2.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -519,8 +483,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + parcomp2.lag +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.parcomp.raw <- lmer(v2elirreg.inv~ji.addindex + parcomp2.lag + 
-                                 ji.addindex:parcomp2.lag +
+mm.elirreg.parcomp.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + parcomp2.lag + 
+                                 vdem.jucon.lag:parcomp2.lag +
                                  elexec + #e_peaveduc+ 
                                  e_polity2 +
                                  e_migdppcln + 
@@ -534,11 +498,11 @@ mm.elirreg.parcomp.raw <- lmer(v2elirreg.inv~ji.addindex + parcomp2.lag +
 summary(mm.elirreg.parcomp.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.parcomp.raw)
-interplot(mm.elirreg.parcomp.raw, "ji.addindex", "parcomp2.lag")  #Higher parcomp + JI = reduced irreg
+interplot(mm.elirreg.parcomp.raw, "vdem.jucon.lag", "parcomp2.lag")  #No interaction
 
 ####
 
-mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + parcomp2.lag +
+mm.elintim.base.raw <- lmer(v2elintim.inv~vdem.jucon.lag + parcomp2.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -551,8 +515,8 @@ mm.elintim.base.raw <- lmer(v2elintim.inv~ji.addindex + parcomp2.lag +
                             data = vdem.nodems)
 summary(mm.elintim.base.raw)
 
-mm.elintim.parcomp.raw <- lmer(v2elintim.inv~ji.addindex + parcomp2.lag + 
-                                 ji.addindex:parcomp2.lag +
+mm.elintim.parcomp.raw <- lmer(v2elintim.inv~vdem.jucon.lag + parcomp2.lag + 
+                                 vdem.jucon.lag:parcomp2.lag +
                                  elexec + #e_peaveduc+ 
                                  e_polity2 +
                                  e_migdppcln + 
@@ -566,11 +530,11 @@ mm.elintim.parcomp.raw <- lmer(v2elintim.inv~ji.addindex + parcomp2.lag +
 summary(mm.elintim.parcomp.raw)
 
 lrtest(mm.elintim.base.raw, mm.elintim.parcomp.raw)
-interplot(mm.elintim.parcomp.raw, "ji.addindex", "parcomp2.lag")  #High parcomp + JI = reduced intim
+interplot(mm.elintim.parcomp.raw, "vdem.jucon.lag", "parcomp2.lag")  #Higher parcomp + JI = less intim
 
 ##parreg
 
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + as.factor(parreg2.lag) +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + as.factor(parreg2.lag) +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -583,8 +547,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~ji.addindex + as.factor(parreg2.lag) +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.parreg.raw <- lmer(v2elirreg.inv~ji.addindex + as.factor(parreg2.lag) + 
-                                ji.addindex:(as.factor(parreg2.lag)) +
+mm.elirreg.parreg.raw <- lmer(v2elirreg.inv~vdem.jucon.lag + as.factor(parreg2.lag) + 
+                                vdem.jucon.lag:(as.factor(parreg2.lag)) +
                                 elexec + #e_peaveduc+ 
                                 e_polity2 +
                                 e_migdppcln + 
@@ -598,4 +562,5 @@ mm.elirreg.parreg.raw <- lmer(v2elirreg.inv~ji.addindex + as.factor(parreg2.lag)
 summary(mm.elirreg.parreg.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.parreg.raw)
-interplot(mm.elirreg.parreg.raw, "ji.addindex", "parreg2.lag")
+interplot(mm.elirreg.parreg.raw, var2="vdem.jucon.lag", var1="parreg2.lag")
+

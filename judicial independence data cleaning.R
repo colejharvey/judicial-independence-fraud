@@ -41,8 +41,8 @@ vdem.short$transitional[vdem.short$e_nelda_1_ex == "no" | vdem.short$e_nelda_1_l
 myvars <- c("COWcode", "year", "transitional", "v2elvotbuy.inv", "v2elirreg.inv", "v2elintim.inv", "v2elpeace.inv", "v2juncind", 
             "v2juhcind", "v2psoppaut", "e_van_comp", "elexec", "e_peaveduc", 
             "e_polity2", "e_migdppcln", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "elexec", "e_multiparty_elections", "v2jureform_ord", "v2jupurge", "v2jupurge_ord",
-            "v2jupack", "v2jupack_ord", "e_democracy_duration", "e_regtrans", "v2exrescon", "v2xlg_legcon",
+            "country_name", "elexec", "e_multiparty_elections", "v2jureform", "v2jureform_ord", "v2jupurge", "v2jupurge_ord",
+            "v2jupack", "v2jupack_ord", "v2x_jucon", "e_democracy_duration", "e_regtrans", "v2exrescon", "v2xlg_legcon",
             "v2x_freexp_thick", "v2x_freexp", "v2xme_altinf", "e_polcomp", "e_parcomp",
             "v2x_frassoc_thick",  "v2xcs_ccsi", "v2xps_party", "v2x_civlib", "v2x_clpol", "v2x_diagacc", "v2ellocumul", "v2ellocons",
              "v2elparlel", "v2elloeldm", "v2ellovtlg", "v2ellovtsm", "v2ellostlg",
@@ -68,6 +68,22 @@ vdem.small$jind.negshockmajor[vdem.small$v2jureform_ord == 0     #The judiciary'
                               | vdem.small$v2jupurge_ord < 1 |       # There was a massive, arbitrary purge of the judiciary
                                 vdem.small$v2jupack_ord < 1 ] <- 1  #There was a massive, politically motivated increase in the number of judgeships
 #across the entire judiciary
+
+
+vdem.small$dejure.jind.negshockmajor <- NA
+vdem.small$dejure.jind.negshockmajor[vdem.small$v2jureform_ord == 1 | vdem.small$v2jureform_ord == 2] <- 0
+vdem.small$dejure.jind.negshockmajor[vdem.small$v2jureform_ord == 0] <- 1  #There was a massive, politically motivated increase in the number of judgeships
+#across the entire judiciary
+
+
+vdem.small$defacto.jind.negshockmajor <- NA
+vdem.small$defacto.jind.negshockmajor[vdem.small$v2jupurge_ord >= 1 &
+                                vdem.small$v2jupack_ord >= 1 ] <- 0
+vdem.small$defacto.jind.negshockmajor[vdem.small$v2jupurge_ord < 1 |       # There was a massive, arbitrary purge of the judiciary
+                                vdem.small$v2jupack_ord < 1 ] <- 1  #There was a massive, politically motivated increase in the number of judgeships
+#across the entire judiciary
+
+
 
 vdem.small$purge_major <- NA
 vdem.small$purge_major[vdem.small$v2jupurge_ord == 3 | vdem.small$v2jupurge_ord == 4] <- 0
@@ -106,6 +122,7 @@ vdem.small$pack_major.lag <- NA
 vdem.small$purge_major.lag <- NA
 vdem.small$negreform.lag <- NA
 vdem.small$posreform.lag <- NA
+vdem.small$vdem.jucon.lag <- NA
 
 i <- 1
 
@@ -131,6 +148,7 @@ for(i in 1:nrow(vdem.small)){
     vdem.small$purge_major.lag[i] <- group.year$purge_major
     vdem.small$negreform.lag[i] <- group.year$reform_negative
     vdem.small$posreform.lag[i] <- group.year$reform_positive
+    vdem.small$vdem.jucon.lag[i] <- group.year$v2x_jucon
   }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
 }   
 

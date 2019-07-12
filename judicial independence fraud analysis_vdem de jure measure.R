@@ -297,7 +297,7 @@ p2.intim <- interplot(mm.elintim.posreform.polity.all, var1="posreform.lag", var
   geom_hline(yintercept=0, linetype=2)  #Boost in JI reduces intimidation in less comp areas
 
 
-png("./Plots/ebal seat share intim.png", height=5,
+png("./Plots/ebal polity intim.png", height=5,
     width=7, units="in", res=300)
 p2.intim
 dev.off()
@@ -564,422 +564,13 @@ stargazer(elintim.posreform.polity.base, mm.elintim.posreform.polity.all, elinti
 
 
 
-##polcomp
 
 
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "polcomp.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
 
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching$polcomp.lag2 <- dataset.matching$polcomp.lag
-dataset.matching$polcomp.lag2[vdem.nodems$polcomp.lag == -66 |
-                                vdem.nodems$polcomp.lag == -77 |
-                                vdem.nodems$polcomp.lag == -88 ] <- 0
-dataset.matching.complete <- na.omit(dataset.matching)
-
-
-
-
-myvars <- c("democracy.duration.lag", "oppaut.lag",  "polcomp.lag2", 
-            "polity2.lag", "loggpdpc.lag", "e_miurbani",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.lag", "altinfo.lag", "e_peaveduc",
-            "leg.constraints.lag", "COWcode", "year")  #"lji.lag"
-ebal.covariates <- dataset.matching.complete[myvars]
-#ebal.covariates.var <- ebal.covariates
-
-ebal.test <- ebalance(Treatment=dataset.matching.complete$posreform.lag, X = ebal.covariates[c(-14, -15)])
-
-
-
-# means in treatment group data
-t.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==1,],2,mean)
-# means in reweighted control group data
-c.means.bal <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,weighted.mean,w=ebal.test$w)
-# means in raw data control group data
-c.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,mean)
-
-
-dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 0)
-dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
-
-dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 1)
-dataset.matching.complete.treat$ebal.test.w <- 1
-
-dataset.matching.complete.w <- data.frame(rbind(dataset.matching.complete.treat, dataset.matching.complete.controls))
-
-
-###regression
-ols.elirreg.negshockmajor.comp.all <- lm(v2elirreg.inv~posreform.lag +
-                                           polcomp.lag2 + posreform.lag*polcomp.lag2 + elexec + 
-                                           #e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) 
-                                         #+ transitional + altinfo.lag
-                                         , weights=ebal.test.w,
-                                         data = dataset.matching.complete.w)
-summary(ols.elirreg.negshockmajor.comp.all)
-p1 <- interplot(ols.elirreg.negshockmajor.comp.all, var1="posreform.lag", var2="polcomp.lag2",
-                hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect") + geom_hline(yintercept=0, linetype=2) 
-
-
-mm.elirreg.negshockmajor.polcomp <- lmer(v2elirreg.inv~posreform.lag +
-                                           polcomp.lag2 + posreform.lag*polcomp.lag2   + elexec + 
-                                           # e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) #+ transitional + altinfo.lag 
-                                         + (1 | COWcode), REML=FALSE, 
-                                         weights=ebal.test.w,
-                                         data = dataset.matching.complete.w)
-summary(mm.elirreg.negshockmajor.polcomp)
-p.polcomp <- interplot(mm.elirreg.negshockmajor.polcomp, var1="posreform.lag", var2="polcomp.lag2",
-                       hist=TRUE) + theme_bw() + labs(x="Lagged political competition", y="Marginal effect" , 
-                                                      title="Marginal effect of negative JI shock on intentional \nvoting irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-
-### State ownership
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "state.ownership.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
-
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
-
-
-myvars <- c("democracy.duration.lag", "oppaut.lag",  "state.ownership.lag", 
-            "polity2.lag", "loggpdpc.lag", "e_miurbani",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.lag", "altinfo.lag", "e_peaveduc",
-            "leg.constraints.lag", "COWcode", "year")  #"lji.lag"
-ebal.covariates <- dataset.matching.complete[myvars]
-#ebal.covariates.var <- ebal.covariates
-
-ebal.test <- ebalance(Treatment=dataset.matching.complete$posreform.lag, X = ebal.covariates[c(-14, -15)])
-
-
-
-# means in treatment group data
-t.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==1,],2,mean)
-# means in reweighted control group data
-c.means.bal <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,weighted.mean,w=ebal.test$w)
-# means in raw data control group data
-c.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,mean)
-
-
-dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 0)
-dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
-
-dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 1)
-dataset.matching.complete.treat$ebal.test.w <- 1
-
-dataset.matching.complete.w <- data.frame(rbind(dataset.matching.complete.treat, dataset.matching.complete.controls))
-
-
-###regression
-ols.elirreg.negshockmajor.comp.all <- lm(v2elirreg.inv~posreform.lag +
-                                           state.ownership.lag + posreform.lag*state.ownership.lag + elexec + 
-                                           #e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) 
-                                         #+ transitional + altinfo.lag
-                                         , weights=ebal.test.w,
-                                         data = dataset.matching.complete.w)
-summary(ols.elirreg.negshockmajor.comp.all)
-p1 <- interplot(ols.elirreg.negshockmajor.comp.all, var1="posreform.lag", var2="state.ownership.lag",
-                hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect") + geom_hline(yintercept=0, linetype=2) 
-
-
-mm.elirreg.negshockmajor.stateown <- lmer(v2elirreg.inv~posreform.lag +
-                                            state.ownership.lag + posreform.lag*state.ownership.lag   + elexec + 
-                                            # e_polity2 +
-                                            e_migdppcln + 
-                                            #e_miurbani + 
-                                            v2eldommon + 
-                                            log(e_mipopula) #+ transitional + altinfo.lag 
-                                          + (1 | COWcode), REML=FALSE, 
-                                          weights=ebal.test.w,
-                                          data = dataset.matching.complete.w)
-summary(mm.elirreg.negshockmajor.stateown)
-p.stateowned <- interplot(mm.elirreg.negshockmajor.stateown, var1="posreform.lag", var2="state.ownership.lag",
-                          hist=TRUE) + theme_bw() + labs(x="State ownership of the economy (lagged)", y="Marginal effect" , 
-                                                         title="Marginal effect of negative JI shock on intentional \nvoting irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-###daigonal accountability
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "diagacc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
-
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
-
-
-myvars <- c("democracy.duration.lag", "oppaut.lag",  "diagacc.lag", 
-            "polity2.lag", "loggpdpc.lag", "e_miurbani",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.lag", "altinfo.lag", "e_peaveduc",
-            "leg.constraints.lag", "COWcode", "year")  #"lji.lag"
-ebal.covariates <- dataset.matching.complete[myvars]
-#ebal.covariates.var <- ebal.covariates
-
-ebal.test <- ebalance(Treatment=dataset.matching.complete$posreform.lag, X = ebal.covariates[c(-14, -15)])
-
-
-
-# means in treatment group data
-t.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==1,],2,mean)
-# means in reweighted control group data
-c.means.bal <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,weighted.mean,w=ebal.test$w)
-# means in raw data control group data
-c.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,mean)
-
-
-dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 0)
-dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
-
-dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 1)
-dataset.matching.complete.treat$ebal.test.w <- 1
-
-dataset.matching.complete.w <- data.frame(rbind(dataset.matching.complete.treat, dataset.matching.complete.controls))
-
-
-###regression
-ols.elirreg.negshockmajor.comp.all <- lm(v2elirreg.inv~posreform.lag +
-                                           diagacc.lag + posreform.lag*diagacc.lag + elexec + 
-                                           #e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) 
-                                         #+ transitional + altinfo.lag
-                                         , weights=ebal.test.w,
-                                         data = dataset.matching.complete.w)
-summary(ols.elirreg.negshockmajor.comp.all)
-p1 <- interplot(ols.elirreg.negshockmajor.comp.all, var1="posreform.lag", var2="diagacc.lag",
-                hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect") + geom_hline(yintercept=0, linetype=2) 
-
-
-mm.elirreg.negshockmajor.diag <- lmer(v2elirreg.inv~posreform.lag +
-                                        diagacc.lag + posreform.lag*diagacc.lag   + elexec + 
-                                        # e_polity2 +
-                                        e_migdppcln + 
-                                        #e_miurbani + 
-                                        v2eldommon + 
-                                        log(e_mipopula) #+ transitional + altinfo.lag 
-                                      + (1 | COWcode), REML=FALSE, 
-                                      weights=ebal.test.w,
-                                      data = dataset.matching.complete.w)
-summary(mm.elirreg.negshockmajor.diag)
-p.diag <- interplot(mm.elirreg.negshockmajor.diag, var1="posreform.lag", var2="diagacc.lag",
-                    hist=TRUE) + theme_bw() + labs(x="Diagonal accountability (lagged)", y="Marginal effect" , 
-                                                   title="Marginal effect of negative JI shock on intentional \nvoting irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-###
-
-mm.elintim.negshockmajor.diag <- lmer(v2elintim.inv~posreform.lag +
-                                        diagacc.lag + posreform.lag*diagacc.lag   + elexec + 
-                                        # e_polity2 +
-                                        e_migdppcln + 
-                                        #e_miurbani + 
-                                        v2eldommon + 
-                                        log(e_mipopula) #+ transitional + altinfo.lag 
-                                      + (1 | COWcode), REML=FALSE, 
-                                      weights=ebal.test.w,
-                                      data = dataset.matching.complete.w)
-summary(mm.elintim.negshockmajor.diag)
-p.diag.intim <- interplot(mm.elintim.negshockmajor.diag, var1="posreform.lag", var2="diagacc.lag",
-                          hist=TRUE) + theme_bw() + labs(x="Diagonal accountability (lagged)", y="Marginal effect" , 
-                                                         title="Marginal effect of negative JI shock on intentional \nvoting irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-
-
-###parreg2
-
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "parreg2.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
-
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
-
-
-myvars <- c("democracy.duration.lag", "oppaut.lag",  "parreg2.lag", 
-            "polity2.lag", "loggpdpc.lag", "e_miurbani",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.lag", "altinfo.lag", "e_peaveduc",
-            "leg.constraints.lag", "COWcode", "year")  #"lji.lag"
-ebal.covariates <- dataset.matching.complete[myvars]
-#ebal.covariates.var <- ebal.covariates
-
-ebal.test <- ebalance(Treatment=dataset.matching.complete$posreform.lag, X = ebal.covariates[c(-14, -15)])
-
-
-
-# means in treatment group data
-t.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==1,],2,mean)
-# means in reweighted control group data
-c.means.bal <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,weighted.mean,w=ebal.test$w)
-# means in raw data control group data
-c.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,mean)
-
-
-dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 0)
-dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
-
-dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 1)
-dataset.matching.complete.treat$ebal.test.w <- 1
-
-dataset.matching.complete.w <- data.frame(rbind(dataset.matching.complete.treat, dataset.matching.complete.controls))
-
-
-###regression
-ols.elirreg.negshockmajor.comp.all <- lm(v2elirreg.inv~posreform.lag +
-                                           parreg2.lag + posreform.lag*parreg2.lag + elexec + 
-                                           #e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) 
-                                         #+ transitional + altinfo.lag
-                                         , weights=ebal.test.w,
-                                         data = dataset.matching.complete.w)
-summary(ols.elirreg.negshockmajor.comp.all)
-p1 <- interplot(ols.elirreg.negshockmajor.comp.all, var1="posreform.lag", var2="opposition.oversight.lag",
-                hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect") + geom_hline(yintercept=0, linetype=2) 
-
-
-mm.elirreg.negshockmajor.comp.all <- lmer(v2elirreg.inv~posreform.lag +
-                                            parreg2.lag + posreform.lag*parreg2.lag   + elexec + 
-                                            # e_polity2 +
-                                            e_migdppcln + 
-                                            #e_miurbani + 
-                                            v2eldommon + 
-                                            log(e_mipopula) #+ transitional + altinfo.lag 
-                                          + (1 | COWcode), REML=FALSE, 
-                                          weights=ebal.test.w,
-                                          data = dataset.matching.complete.w)
-summary(mm.elirreg.negshockmajor.comp.all)
-p2 <- interplot(mm.elirreg.negshockmajor.comp.all, var1="posreform.lag", var2="parreg2.lag",
-                hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect" , 
-                                               title="Marginal effect of negative JI shock on intentional \nvoting irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-###parcomp
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "parcomp2.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
-
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
-
-
-myvars <- c("democracy.duration.lag", "oppaut.lag",  "parcomp2.lag", 
-            "polity2.lag", "loggpdpc.lag", "e_miurbani",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.lag", "altinfo.lag", "e_peaveduc",
-            "leg.constraints.lag", "COWcode", "year")  #"lji.lag"
-ebal.covariates <- dataset.matching.complete[myvars]
-#ebal.covariates.var <- ebal.covariates
-
-ebal.test <- ebalance(Treatment=dataset.matching.complete$posreform.lag, X = ebal.covariates[c(-14, -15)])
-
-
-
-# means in treatment group data
-t.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==1,],2,mean)
-# means in reweighted control group data
-c.means.bal <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,weighted.mean,w=ebal.test$w)
-# means in raw data control group data
-c.means <- apply(ebal.covariates[dataset.matching.complete$posreform.lag==0,],2,mean)
-
-
-dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 0)
-dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
-
-dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$posreform.lag == 1)
-dataset.matching.complete.treat$ebal.test.w <- 1
-
-dataset.matching.complete.w <- data.frame(rbind(dataset.matching.complete.treat, dataset.matching.complete.controls))
-
-
-###regression
-ols.elirreg.negshockmajor.comp.all <- lm(v2elirreg.inv~posreform.lag +
-                                           parcomp2.lag + posreform.lag*parcomp2.lag + elexec + 
-                                           #e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) 
-                                         #+ transitional + altinfo.lag
-                                         , weights=ebal.test.w,
-                                         data = dataset.matching.complete.w)
-summary(ols.elirreg.negshockmajor.comp.all)
-p1 <- interplot(ols.elirreg.negshockmajor.comp.all, var1="posreform.lag", var2="opposition.oversight.lag",
-                hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect") + geom_hline(yintercept=0, linetype=2) 
-
-
-mm.elirreg.negshockmajor.comp.all <- lmer(v2elirreg.inv~posreform.lag +
-                                            parcomp2.lag + posreform.lag*parcomp2.lag   + elexec + 
-                                            # e_polity2 +
-                                            e_migdppcln + 
-                                            #e_miurbani + 
-                                            v2eldommon + 
-                                            log(e_mipopula) #+ transitional + altinfo.lag 
-                                          + (1 | COWcode), REML=FALSE, 
-                                          weights=ebal.test.w,
-                                          data = dataset.matching.complete.w)
-summary(mm.elirreg.negshockmajor.comp.all)
-p2 <- interplot(mm.elirreg.negshockmajor.comp.all, var1="posreform.lag", var2="parcomp2.lag",
-                hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect" , 
-                                               title="Marginal effect of negative JI shock on intentional \nvoting irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
 
 
 ###Appendix table and plots
-library(stargazer)
-stargazer(mm.elirreg.negshockmajor.polcomp, mm.elirreg.negshockmajor.diag, mm.elirreg.negshockmajor.stateown, 
-          type="html", out="C:/Users/Cole/Dropbox/Judicial independence project/ebal appendix models.html")
 
-
-png("C:/Users/Cole/Dropbox/Judicial independence project/R plots/marginal effects diagonal accountability.png", height=5,
-    width=7, units="in", res=300)
-p.diag
-dev.off()
-
-png("C:/Users/Cole/Dropbox/Judicial independence project/R plots/marginal effects state ownership.png", height=5,
-    width=7, units="in", res=300)
-p.stateowned
-dev.off()
-
-png("C:/Users/Cole/Dropbox/Judicial independence project/R plots/marginal effects polcomp.png", height=5,
-    width=7, units="in", res=300)
-p.polcomp
-dev.off()
 
 ###Alternative measures of independence: LJI and HC/LC ind from Vdem
 ####Adding LJI to vdem.nodems
@@ -1159,6 +750,8 @@ png("./Plots/alternatives oversight multiplot.png", width=6, height=9, units="in
 multiplot(p.lji.opp, p.hc.opp, p.lc.opp, cols = 1)
 dev.off()
 
+
+
 ####LJI by civil society, no balancing because not a binary treatment
 mm.elirreg.lji.cci <- lmer(v2elirreg.inv~lji.lag +
                              core.civil.society.lag + lji.lag*core.civil.society.lag   + elexec +
@@ -1200,7 +793,7 @@ interplot(mm.elirreg.lji.comp, var1="lji.lag", var2="polity2.lag", hist=TRUE)
 
 
 ##Core civil society
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + v2xcs_ccsi +
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag +  core.civil.society.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -1213,8 +806,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + v2xcs_ccsi +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.ccsi.raw <- lmer(v2elirreg.inv~jureform.lag + v2xcs_ccsi + 
-                              jureform.lag:v2xcs_ccsi +
+mm.elirreg.ccsi.raw <- lmer(v2elirreg.inv~jureform.lag + core.civil.society.lag + 
+                              jureform.lag:core.civil.society.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -1228,8 +821,13 @@ mm.elirreg.ccsi.raw <- lmer(v2elirreg.inv~jureform.lag + v2xcs_ccsi +
 summary(mm.elirreg.ccsi.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.ccsi.raw)
-interplot(mm.elirreg.ccsi.raw, var1="jureform.lag", var2="v2xcs_ccsi") #Unconvincing plots
+plot.raw.cc <- interplot(mm.elirreg.ccsi.raw, var1="jureform.lag", var2="core.civil.society.lag", hist=TRUE) +
+  labs(x="Civil society openness", y="Marginal effect", title="Marginal effect of judicial reform \non intentional voting irregularities") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2) #Unconvincing plots
 
+png("./Plots/raw civil society irreg.png", width=7, height=5, units="in", res=300)
+plot.raw.cc
+dev.off()
 
 ####
 
@@ -1270,168 +868,6 @@ interplot(mm.elintim.ccsi.raw, var1="jureform.lag", var2="v2xcs_ccsi") #When CC 
 
 
 
-##Lagged lower house seat second place share 
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + lowchamb.second.seatshare.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.base.raw)
-
-mm.elirreg.ss.raw <- lmer(v2elirreg.inv~jureform.lag + lowchamb.second.seatshare.lag + 
-                            jureform.lag:lowchamb.second.seatshare.lag +
-                            elexec + #e_peaveduc+ 
-                            e_polity2 +
-                            e_migdppcln + 
-                            e_miurbani + 
-                            v2eldommon + 
-                            log(e_mipopula) 
-                          + transitional + altinfo.lag
-                          
-                          + (1 | COWcode), REML=FALSE,
-                          data = vdem.nodems)
-summary(mm.elirreg.ss.raw)
-
-lrtest(mm.elirreg.base.raw, mm.elirreg.ss.raw)
-interplot(mm.elirreg.ss.raw, var1="jureform.lag", var2="lowchamb.second.seatshare.lag") #No interaction
-
-
-##Engaged society
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + engaged.society.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.base.raw)
-
-mm.elirreg.engaged.raw <- lmer(v2elirreg.inv~jureform.lag + engaged.society.lag + 
-                                 jureform.lag:engaged.society.lag +
-                                 elexec + #e_peaveduc+ 
-                                 e_polity2 +
-                                 e_migdppcln + 
-                                 e_miurbani + 
-                                 v2eldommon + 
-                                 log(e_mipopula) 
-                               + transitional + altinfo.lag
-                               
-                               + (1 | COWcode), REML=FALSE,
-                               data = vdem.nodems)
-summary(mm.elirreg.engaged.raw)
-
-lrtest(mm.elirreg.base.raw, mm.elirreg.engaged.raw)
-interplot(mm.elirreg.engaged.raw, var1="jureform.lag", var2="engaged.society.lag") #Increase in JI = less fraud in less open societies
-
-###
-
-mm.elintim.base.raw <- lmer(v2elintim.inv~jureform.lag + engaged.society.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.base.raw)
-
-mm.elintim.engaged.raw <- lmer(v2elintim.inv~jureform.lag + engaged.society.lag + 
-                                 jureform.lag:engaged.society.lag +
-                                 elexec + #e_peaveduc+ 
-                                 e_polity2 +
-                                 e_migdppcln + 
-                                 e_miurbani + 
-                                 v2eldommon + 
-                                 log(e_mipopula) 
-                               + transitional + altinfo.lag
-                               
-                               + (1 | COWcode), REML=FALSE,
-                               data = vdem.nodems)
-summary(mm.elintim.engaged.raw)
-
-lrtest(mm.elintim.base.raw, mm.elintim.engaged.raw)
-interplot(mm.elintim.engaged.raw, var1="jureform.lag", var2="engaged.society.lag") #No effect
-
-
-
-##State owernship of economy
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + v2clstown +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.base.raw)
-
-mm.elirreg.stown.raw <- lmer(v2elirreg.inv~jureform.lag + v2clstown + 
-                               jureform.lag:v2clstown +
-                               elexec + #e_peaveduc+ 
-                               e_polity2 +
-                               e_migdppcln + 
-                               e_miurbani + 
-                               v2eldommon + 
-                               log(e_mipopula) 
-                             + transitional + altinfo.lag
-                             
-                             + (1 | COWcode), REML=FALSE,
-                             data = vdem.nodems)
-summary(mm.elirreg.stown.raw)
-
-lrtest(mm.elirreg.base.raw, mm.elirreg.stown.raw)
-interplot(mm.elirreg.stown.raw, var1="jureform.lag", var2="v2clstown")  #High state ownership + attack = more irregularity; and vice versa; same is true of boost to JI (oddly)
-
-###
-
-mm.elintim.base.raw <- lmer(v2elintim.inv~jureform.lag + v2clstown +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.base.raw)
-
-mm.elintim.stown.raw <- lmer(v2elintim.inv~jureform.lag + v2clstown + 
-                               jureform.lag:v2clstown +
-                               elexec + #e_peaveduc+ 
-                               e_polity2 +
-                               e_migdppcln + 
-                               e_miurbani + 
-                               v2eldommon + 
-                               log(e_mipopula) 
-                             + transitional + altinfo.lag
-                             
-                             + (1 | COWcode), REML=FALSE,
-                             data = vdem.nodems)
-summary(mm.elintim.stown.raw)
-
-lrtest(mm.elintim.base.raw, mm.elintim.stown.raw)
-interplot(mm.elintim.stown.raw, var1="jureform.lag", var2="v2clstown")  #Private owernship + boost to JI = less violence
-
-
-
 
 ##Opposition oversight
 mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + opposition.oversight.lag +
@@ -1462,14 +898,21 @@ mm.elirreg.oppart.raw <- lmer(v2elirreg.inv~jureform.lag + opposition.oversight.
 summary(mm.elirreg.oppart.raw)
 
 lrtest(mm.elirreg.base.raw, mm.elirreg.oppart.raw)
-interplot(mm.elirreg.oppart.raw, var1="jureform.lag", var2="opposition.oversight.lag") #No effect for attack; boost reduces fraud when oversight is low
+plot.raw.oppover <- interplot(mm.elirreg.oppart.raw, var1="jureform.lag", var2="opposition.oversight.lag", hist=TRUE) +
+  labs(x="Opposition oversight (lagged)", y="Marginal effect", title="Marginal effect of judicial reform \non intentional voting irregularities") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2) #No effect for attack; boost reduces fraud when oversight is low
+
+
+png("./Plots/raw oppoversity irreg.png", width=7, height=5, units="in", res=300)
+plot.raw.oppover
+dev.off()
 
 
 
 
 
-##Comp
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + e_van_comp.lag +
+##polity
+mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + polity2.lag +
                               elexec + #e_peaveduc+ 
                               e_polity2 +
                               e_migdppcln + 
@@ -1482,75 +925,8 @@ mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + e_van_comp.lag +
                             data = vdem.nodems)
 summary(mm.elirreg.base.raw)
 
-mm.elirreg.comp.raw <- lmer(v2elirreg.inv~jureform.lag + e_van_comp.lag + 
-                              jureform.lag:e_van_comp.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.comp.raw)
-
-lrtest(mm.elirreg.base.raw, mm.elirreg.comp.raw)
-interplot(mm.elirreg.comp.raw, var1="jureform.lag", var2="e_van_comp.lag") #No relationship
-
-
-####
-
-mm.elintim.base.raw <- lmer(v2elintim.inv~jureform.lag + e_van_comp.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.base.raw)
-
-mm.elintim.comp.raw <- lmer(v2elintim.inv~jureform.lag + e_van_comp.lag + 
-                              jureform.lag:e_van_comp.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.comp.raw)
-
-lrtest(mm.elintim.base.raw, mm.elintim.comp.raw)
-interplot(mm.elintim.comp.raw, var1="jureform.lag", var2="e_van_comp.lag") #When comp is low, boost reduces violence
-
-
-
-
-##regtrans
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + regtrans2.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.base.raw)
-
-mm.elirreg.regtrans.raw <- lmer(v2elirreg.inv~jureform.lag + regtrans2.lag + 
-                                  jureform.lag:regtrans2.lag +
+mm.elirreg.polity.raw <- lmer(v2elirreg.inv~jureform.lag + polity2.lag + 
+                                  jureform.lag:polity2.lag +
                                   elexec + #e_peaveduc+ 
                                   e_polity2 +
                                   e_migdppcln + 
@@ -1561,142 +937,23 @@ mm.elirreg.regtrans.raw <- lmer(v2elirreg.inv~jureform.lag + regtrans2.lag +
                                 
                                 + (1 | COWcode), REML=FALSE,
                                 data = vdem.nodems)
-summary(mm.elirreg.regtrans.raw)
+summary(mm.elirreg.polity.raw)
 
-lrtest(mm.elirreg.base.raw, mm.elirreg.regtrans.raw)
-interplot(mm.elirreg.regtrans.raw, var1="jureform.lag", var2="regtrans2.lag") #No relationship
+lrtest(mm.elirreg.base.raw, mm.elirreg.polity.raw)
+plot.raw.polity <- interplot(mm.elirreg.polity.raw, var1="jureform.lag", var2="polity2.lag", hist=TRUE) +
+  labs(x="Polity score", y="Marginal effect", title="Marginal effect of judicial reform \non intentional voting irregularities") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2) #No relationship
 
-###
-
-mm.elintim.base.raw <- lmer(v2elintim.inv~jureform.lag + regtrans2.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.base.raw)
-
-mm.elintim.regtrans.raw <- lmer(v2elintim.inv~jureform.lag + regtrans2.lag + 
-                                  jureform.lag:regtrans2.lag +
-                                  elexec + #e_peaveduc+ 
-                                  e_polity2 +
-                                  e_migdppcln + 
-                                  e_miurbani + 
-                                  v2eldommon + 
-                                  log(e_mipopula) 
-                                + transitional + altinfo.lag
-                                
-                                + (1 | COWcode), REML=FALSE,
-                                data = vdem.nodems)
-summary(mm.elintim.regtrans.raw)
-
-lrtest(mm.elintim.base.raw, mm.elintim.regtrans.raw)
-interplot(mm.elintim.regtrans.raw, var1="jureform.lag", var2="regtrans2.lag") #Attack + authoritarian shift = more intim, boost + authoritarian shift = less
+png("./Plots/raw polity irreg.png", width=7, height=5, units="in", res=300)
+plot.raw.polity
+dev.off()
 
 
 
-##parcomp2
 
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + parcomp2.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.base.raw)
-
-mm.elirreg.parcomp.raw <- lmer(v2elirreg.inv~jureform.lag + parcomp2.lag + 
-                                 jureform.lag:parcomp2.lag +
-                                 elexec + #e_peaveduc+ 
-                                 e_polity2 +
-                                 e_migdppcln + 
-                                 e_miurbani + 
-                                 v2eldommon + 
-                                 log(e_mipopula) 
-                               + transitional + altinfo.lag
-                               
-                               + (1 | COWcode), REML=FALSE,
-                               data = vdem.nodems)
-summary(mm.elirreg.parcomp.raw)
-
-lrtest(mm.elirreg.base.raw, mm.elirreg.parcomp.raw)
-interplot(mm.elirreg.parcomp.raw, "jureform.lag", "parcomp2.lag")  #Unconvincing plot
-
-####
-
-mm.elintim.base.raw <- lmer(v2elintim.inv~jureform.lag + parcomp2.lag +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elintim.base.raw)
-
-mm.elintim.parcomp.raw <- lmer(v2elintim.inv~jureform.lag + parcomp2.lag + 
-                                 jureform.lag:parcomp2.lag +
-                                 elexec + #e_peaveduc+ 
-                                 e_polity2 +
-                                 e_migdppcln + 
-                                 e_miurbani + 
-                                 v2eldommon + 
-                                 log(e_mipopula) 
-                               + transitional + altinfo.lag
-                               
-                               + (1 | COWcode), REML=FALSE,
-                               data = vdem.nodems)
-summary(mm.elintim.parcomp.raw)
-
-lrtest(mm.elintim.base.raw, mm.elintim.parcomp.raw)
-interplot(mm.elintim.parcomp.raw, "jureform.lag", "parcomp2.lag")  #Unconvincing plot
-
-##parreg
-
-mm.elirreg.base.raw <- lmer(v2elirreg.inv~jureform.lag + as.factor(parreg2.lag) +
-                              elexec + #e_peaveduc+ 
-                              e_polity2 +
-                              e_migdppcln + 
-                              e_miurbani + 
-                              v2eldommon + 
-                              log(e_mipopula) 
-                            + transitional + altinfo.lag 
-                            
-                            + (1 | COWcode), REML=FALSE,
-                            data = vdem.nodems)
-summary(mm.elirreg.base.raw)
-
-mm.elirreg.parreg.raw <- lmer(v2elirreg.inv~jureform.lag + as.factor(parreg2.lag) + 
-                                jureform.lag:(as.factor(parreg2.lag)) +
-                                elexec + #e_peaveduc+ 
-                                e_polity2 +
-                                e_migdppcln + 
-                                e_miurbani + 
-                                v2eldommon + 
-                                log(e_mipopula) 
-                              + transitional + altinfo.lag
-                              
-                              + (1 | COWcode), REML=FALSE,
-                              data = vdem.nodems)
-summary(mm.elirreg.parreg.raw)
-
-lrtest(mm.elirreg.base.raw, mm.elirreg.parreg.raw)
-interplot(mm.elirreg.parreg.raw, "jureform.lag", "parreg2.lag")
-
-
+stargazer(mm.elirreg.polity.raw, mm.elirreg.ccsi.raw, mm.elirreg.oppart.raw, 
+          type="html", 
+          out="./Drafts/raw data models irreg.html")
 
 
 
@@ -1706,10 +963,12 @@ interplot(mm.elirreg.parreg.raw, "jureform.lag", "parreg2.lag")
 ####
 library(CBPS)
 
+
+ ###Polity
 myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
             "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
             "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "jureform.lag", "e_migdppcln", "loggpdpc.lag",
+            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
             "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
             "altinfo.lag", "state.ownership.lag", "core.civil.society.lag", "v2x_clpol",
             "diagacc.lag", "engaged.society.lag", "antisystem.lag", "v2psbars", "frassoc_thick.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
@@ -1719,7 +978,7 @@ dataset.matching.complete <- na.omit(dataset.matching)
 
 ###Finding scores/weights 
 
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag +
+cbps.out <- CBPS(posreform.lag~ democracy.duration.lag + oppaut.lag +
                    e_peaveduc +
                    #e_van_comp.lag  + 
                    polity2.lag + #polcomp.lag + parcomp.lag +
@@ -1735,129 +994,9 @@ balance(cbps.out)
 
 ###Output models
 
-#frassoc_thick.lag
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag +
-                   e_peaveduc +
-                   #e_van_comp.lag  + 
-                   polity2.lag + #polcomp.lag + parcomp.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + leg.constraints.lag + frassoc_thick.lag, data=dataset.matching.complete)
-summary(cbps.out)
-balance(cbps.out)
-
-model.elirreg.negshockmajor.frassoc <- lmer(v2elirreg.inv~jureform.lag +
-                                              frassoc_thick.lag + jureform.lag*frassoc_thick.lag + elexec  + 
-                                              #e_polity2 +
-                                              e_migdppcln + 
-                                              #e_miurbani + 
-                                              v2eldommon + 
-                                              log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                            , weights=cbps.out$weights,
-                                            data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.frassoc)
-p.cbps.irreg.frassoc <- interplot(model.elirreg.negshockmajor.frassoc, var1="jureform.lag", var2="frassoc_thick.lag",
-                                  hist=TRUE) + theme_bw() + labs(x="Lagged core civil society index", y="Marginal effect",
-                                                                 title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2)   #Significant positive
 
 
-###
-
-model.elintim.negshockmajor.frassoc <- lmer(v2elintim.inv~jureform.lag +
-                                              frassoc_thick.lag + jureform.lag*frassoc_thick.lag + elexec  + 
-                                              #e_polity2 +
-                                              e_migdppcln + 
-                                              #e_miurbani + 
-                                              v2eldommon + 
-                                              log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                            , weights=cbps.out$weights,
-                                            data = cbps.out$data) 
-summary(model.elintim.negshockmajor.frassoc)
-p.cbps.intim.frassoc <- interplot(model.elintim.negshockmajor.frassoc, var1="jureform.lag", var2="frassoc_thick.lag",
-                                  hist=TRUE) + theme_bw() + labs(x="Lagged core civil society index", y="Marginal effect",
-                                                                 title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2)   #Significant positive
-
-
-
-#state.ownership.lag
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag +
-                   e_peaveduc +
-                   #e_van_comp.lag  + 
-                   polity2.lag + #polcomp.lag + parcomp.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + leg.constraints.lag + state.ownership.lag, data=dataset.matching.complete)
-summary(cbps.out)
-balance(cbps.out)
-
-
-model.elirreg.negshockmajor.own <- lmer(v2elirreg.inv~jureform.lag +
-                                          state.ownership.lag + jureform.lag*state.ownership.lag + 
-                                          elexec  + 
-                                          #  e_polity2 +
-                                          e_migdppcln + 
-                                          democracy.duration.lag + oppaut.lag +
-                                          e_peaveduc +
-                                          #e_van_comp.lag  + 
-                                          #polcomp.lag2 + #polcomp.lag 
-                                          + polity2.lag +
-                                          loggpdpc.lag + 
-                                          e_miurbani +
-                                          + hc.ind.2lag 
-                                        +  lc.ind.2lag
-                                        +transitional
-                                        + exec.respectcon.lag  +  altinfo.lag 
-                                        + v2eldommon + 
-                                          log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                        , weights=cbps.out$weights,
-                                        data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.own)
-p.cbps.irreg.stown <- interplot(model.elirreg.negshockmajor.own, var1="jureform.lag", var2="state.ownership.lag",
-                                hist=TRUE) + theme_bw() + labs(x="Lagged state ownership", y="Marginal effect",
-                                                               title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2)
-
-###
-
-model.elintim.negshockmajor.own <- lmer(v2elintim.inv~jureform.lag +
-                                          state.ownership.lag + jureform.lag*state.ownership.lag + 
-                                          elexec  + 
-                                          #  e_polity2 +
-                                          e_migdppcln + 
-                                          democracy.duration.lag + oppaut.lag +
-                                          e_peaveduc +
-                                          #e_van_comp.lag  + 
-                                          #polcomp.lag2 + #polcomp.lag 
-                                          + polity2.lag +
-                                          loggpdpc.lag + 
-                                          e_miurbani +
-                                          + hc.ind.2lag 
-                                        +  lc.ind.2lag
-                                        +transitional
-                                        + exec.respectcon.lag  +  altinfo.lag 
-                                        + v2eldommon + 
-                                          log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                        , weights=cbps.out$weights,
-                                        data = cbps.out$data) 
-summary(model.elintim.negshockmajor.own)
-p.cbps.intim.stown <- interplot(model.elintim.negshockmajor.own, var1="jureform.lag", var2="state.ownership.lag",
-                                hist=TRUE) + theme_bw() + labs(x="Lagged state ownership", y="Marginal effect",
-                                                               title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-#core.civil.society.lag
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag + 
+cbps.out <- CBPS(posreform.lag~ democracy.duration.lag + oppaut.lag + 
                    e_peaveduc +
                    # e_van_comp.lag  + 
                    polity2.lag + #polcomp.lag + parcomp.lag +
@@ -1873,8 +1012,89 @@ summary(cbps.out)
 balance(cbps.out)
 
 
-model.elirreg.negshockmajor.ccs <- lmer(v2elirreg.inv~jureform.lag +
-                                          core.civil.society.lag + jureform.lag*core.civil.society.lag + 
+model.elirreg.negshockmajor.polity <- lmer(v2elirreg.inv~posreform.lag +
+                                          polity2.lag + posreform.lag*polity2.lag + 
+                                          elexec  + 
+                                          #  e_polity2 +
+                                          e_migdppcln + 
+                                          #democracy.duration.lag + oppaut.lag +
+                                          e_peaveduc +
+                                          #e_van_comp.lag  + 
+                                          #polcomp.lag2 + #polcomp.lag 
+                                          
+                                          e_miurbani +
+                                          #  + hc.ind.2lag 
+                                          # +  lc.ind.2lag
+                                          +transitional
+                                        + exec.respectcon.lag  +  altinfo.lag 
+                                        + v2eldommon + 
+                                          log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
+                                        , weights=cbps.out$weights,
+                                        data = cbps.out$data) 
+summary(model.elirreg.negshockmajor.polity)
+p.cbps.irreg.polity <- interplot(model.elirreg.negshockmajor.polity, var1="posreform.lag", var2="polity2.lag",
+                              hist=TRUE) + theme_bw() + labs(x="Lagged Polity score", y="Marginal effect",
+                                                             title="Marginal effect of positive judicial reform \non voting irregularities") +
+  geom_hline(yintercept=0, linetype=2) 
+
+png("./Plots/cbps polity irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.polity
+dev.off()
+
+ ###Civil society
+
+
+myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
+            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
+            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
+            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
+            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
+            "altinfo.lag", "state.ownership.lag", "core.civil.society.lag", "v2x_clpol",
+            "diagacc.lag", "engaged.society.lag", "antisystem.lag", "v2psbars", "frassoc_thick.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+###Finding scores/weights 
+
+cbps.out <- CBPS(posreform.lag~ democracy.duration.lag + oppaut.lag +
+                   e_peaveduc +
+                   #e_van_comp.lag  + 
+                   polity2.lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.lag + 
+                   e_miurbani +
+                   + hc.ind.2lag 
+                 +  lc.ind.2lag
+                 +transitional
+                 + exec.respectcon.lag  +  altinfo.lag + 
+                   + leg.constraints.lag + state.ownership.lag, data=dataset.matching.complete)
+summary(cbps.out)
+balance(cbps.out)
+
+###Output models
+
+
+
+#core.civil.society.lag
+cbps.out <- CBPS(posreform.lag~ democracy.duration.lag + oppaut.lag + 
+                   e_peaveduc +
+                   # e_van_comp.lag  + 
+                   polity2.lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.lag + 
+                   e_miurbani +
+                   + hc.ind.2lag 
+                 +  lc.ind.2lag
+                 +transitional
+                 + exec.respectcon.lag  +  altinfo.lag + 
+                   + leg.constraints.lag + core.civil.society.lag 
+                 , data=dataset.matching.complete)
+summary(cbps.out)
+balance(cbps.out)
+
+
+model.elirreg.negshockmajor.ccs <- lmer(v2elirreg.inv~posreform.lag +
+                                          core.civil.society.lag + posreform.lag*core.civil.society.lag + 
                                           elexec  + 
                                           #  e_polity2 +
                                           e_migdppcln + 
@@ -1894,16 +1114,21 @@ model.elirreg.negshockmajor.ccs <- lmer(v2elirreg.inv~jureform.lag +
                                         , weights=cbps.out$weights,
                                         data = cbps.out$data) 
 summary(model.elirreg.negshockmajor.ccs)
-p.cbps.irreg.ccs <- interplot(model.elirreg.negshockmajor.ccs, var1="jureform.lag", var2="core.civil.society.lag",
+p.cbps.irreg.ccs <- interplot(model.elirreg.negshockmajor.ccs, var1="posreform.lag", var2="core.civil.society.lag",
                               hist=TRUE) + theme_bw() + labs(x="Lagged core civil society index", y="Marginal effect",
-                                                             title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
+                                                             title="Marginal effect of positive judicial reform \non voting irregularities") +
   geom_hline(yintercept=0, linetype=2) 
+
+png("./Plots/cbps cs irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.ccs
+dev.off()
 
 
 ###
 
-model.elintim.negshockmajor.ccs <- lmer(v2elintim.inv~jureform.lag +
-                                          core.civil.society.lag + jureform.lag*core.civil.society.lag + 
+model.elintim.negshockmajor.ccs <- lmer(v2elintim.inv~posreform.lag +
+                                          core.civil.society.lag + posreform.lag*core.civil.society.lag + 
                                           elexec  + 
                                           #  e_polity2 +
                                           e_migdppcln + 
@@ -1923,7 +1148,7 @@ model.elintim.negshockmajor.ccs <- lmer(v2elintim.inv~jureform.lag +
                                         , weights=cbps.out$weights,
                                         data = cbps.out$data) 
 summary(model.elintim.negshockmajor.ccs)
-p.cbps.irreg.ccs <- interplot(model.elintim.negshockmajor.ccs, var1="jureform.lag", var2="core.civil.society.lag",
+p.cbps.irreg.ccs <- interplot(model.elintim.negshockmajor.ccs, var1="posreform.lag", var2="core.civil.society.lag",
                               hist=TRUE) + theme_bw() + labs(x="Lagged core civil society index", y="Marginal effect",
                                                              title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
   geom_hline(yintercept=0, linetype=2)   #No interaction
@@ -1936,69 +1161,20 @@ p.cbps.irreg.ccs <- interplot(model.elintim.negshockmajor.ccs, var1="jureform.la
 
 
 
-#oppaut.lag
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag + e_peaveduc +
-                   #e_van_comp.lag  + 
-                   polity2.lag + #polcomp.lag + parcomp.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + leg.constraints.lag
-                 , data=dataset.matching.complete)
-summary(cbps.out)
-balance(cbps.out)
-
-
-model.elirreg.negshockmajor.oppaut <- lmer(v2elirreg.inv~jureform.lag +
-                                             oppaut.lag + jureform.lag*oppaut.lag 
-                                           + elexec  + 
-                                             #e_polity2 +
-                                             e_migdppcln + 
-                                             #e_miurbani + 
-                                             v2eldommon + 
-                                             log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                           , weights=cbps.out$weights,
-                                           data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.oppaut)
-p.cbps.irreg.oppaut <- interplot(model.elirreg.negshockmajor.oppaut, var1="jureform.lag", var2="oppaut.lag",
-                                 hist=TRUE) + theme_bw() + labs(x="Opposition autonomy lagged", y="Marginal effect",
-                                                                title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2)  #Positive significant: negative shock increases irreg at high oppaut
-
-###
-
-model.elintim.negshockmajor.oppaut <- lmer(v2elintim.inv~jureform.lag +
-                                             oppaut.lag + jureform.lag*oppaut.lag 
-                                           + elexec  + 
-                                             #e_polity2 +
-                                             e_migdppcln + 
-                                             #e_miurbani + 
-                                             v2eldommon + 
-                                             log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                           , weights=cbps.out$weights,
-                                           data = cbps.out$data) 
-summary(model.elintim.negshockmajor.oppaut)
-p.cbps.irreg.oppaut <- interplot(model.elintim.negshockmajor.oppaut, var1="jureform.lag", var2="oppaut.lag",
-                                 hist=TRUE) + theme_bw() + labs(x="Opposition autonomy lagged", y="Marginal effect",
-                                                                title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2)  #Positive significant: negative shock increases intimidation at high oppaut
 
 
 #opposition.oversight.lag
 myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
             "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
             "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "jureform.lag", "e_migdppcln", "loggpdpc.lag",
+            "country_name", "posreform.lag", "e_migdppcln", "loggpdpc.lag",
             "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
             "altinfo.lag", "opposition.oversight.lag")  #, "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
 
 dataset.matching <- vdem.nodems[myvars]
 dataset.matching.complete <- na.omit(dataset.matching)
 
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + #oppaut.lag + 
+cbps.out <- CBPS(posreform.lag~ democracy.duration.lag + #oppaut.lag + 
                    e_peaveduc +
                    # e_van_comp.lag  + 
                    polity2.lag + #polcomp.lag + parcomp.lag +
@@ -2011,23 +1187,25 @@ cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + #oppaut.lag +
                    + leg.constraints.lag + opposition.oversight.lag 
                  , data=dataset.matching.complete)
 summary(cbps.out)
-balance(cbps.out)
+oversight.bal <- balance(cbps.out)
+
+stargazer(oversight.bal, 
+          type="html", 
+          out="./Drafts/cbps balance oversight model irreg.html")
 
 
-model.elirreg.negshockmajor.oppover <- lmer(v2elirreg.inv~jureform.lag +
-                                              opposition.oversight.lag + jureform.lag*opposition.oversight.lag + 
+model.elirreg.negshockmajor.oppover <- lmer(v2elirreg.inv~posreform.lag +
+                                              opposition.oversight.lag + posreform.lag*opposition.oversight.lag + 
                                               elexec  + 
                                               #  e_polity2 +
                                               e_migdppcln + 
-                                              democracy.duration.lag + oppaut.lag +
+                                               
                                               e_peaveduc +
                                               #e_van_comp.lag  + 
                                               #polcomp.lag2 + #polcomp.lag 
                                               + polity2.lag +
-                                              loggpdpc.lag + 
-                                              e_miurbani +
-                                              + hc.ind.2lag 
-                                            +  lc.ind.2lag
+                                               
+                                              e_miurbani 
                                             +transitional
                                             + exec.respectcon.lag  +  altinfo.lag 
                                             + v2eldommon + 
@@ -2035,10 +1213,16 @@ model.elirreg.negshockmajor.oppover <- lmer(v2elirreg.inv~jureform.lag +
                                             , weights=cbps.out$weights,
                                             data = cbps.out$data) 
 summary(model.elirreg.negshockmajor.oppover)
-p.cbps.irreg.oppover <- interplot(model.elirreg.negshockmajor.oppover, var1="jureform.lag", var2="opposition.oversight.lag",
+p.cbps.irreg.oppover <- interplot(model.elirreg.negshockmajor.oppover, var1="posreform.lag", var2="opposition.oversight.lag",
                                   hist=TRUE) + theme_bw() + labs(x="Opposition oversight lagged", y="Marginal effect",
-                                                                 title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
+                                                                 title="Marginal effect of positive judicial reform \non voting irregularities") +
   geom_hline(yintercept=0, linetype=2)    #Negative sig
+
+png("./Plots/cbps oversight irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.oppover
+dev.off()
+
 
 
 ###
@@ -2071,428 +1255,16 @@ p.cbps.intim.oppover <- interplot(model.elintim.negshockmajor.oppover, var1="jur
   geom_hline(yintercept=0, linetype=2)    #Negative sig
 
 
-#leg.investigates.lag
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "jureform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "leg.investigates.lag")  #, "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
 
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
 
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag + 
-                   e_peaveduc +
-                   #e_van_comp.lag  + 
-                   polity2.lag + #polcomp.lag + parcomp.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + leg.constraints.lag  + leg.investigates.lag
-                 , data=dataset.matching.complete)
-summary(cbps.out)
-balance(cbps.out)
 
-model.elirreg.negshockmajor.leginvest <- lmer(v2elirreg.inv~jureform.lag +
-                                                leg.investigates.lag + jureform.lag*leg.investigates.lag   + elexec  + 
-                                                #e_polity2 +
-                                                e_migdppcln + 
-                                                #e_miurbani + 
-                                                v2eldommon + 
-                                                log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                              , weights=cbps.out$weights,
-                                              data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.leginvest)
-p.cbps.irreg.leginvest <- interplot(model.elirreg.negshockmajor.leginvest, var1="jureform.lag", var2="leg.investigates.lag",
-                                    hist=TRUE) + theme_bw() + labs(x="Lagged legislative investigation", y="Marginal effect",
-                                                                   title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2)  #Negative significant
 
 
-###
+stargazer(model.elirreg.negshockmajor.polity, model.elirreg.negshockmajor.ccs, model.elirreg.negshockmajor.oppover, 
+          type="html", 
+          out="./Drafts/cbps outcome models irreg.html")
 
-model.elintim.negshockmajor.leginvest <- lmer(v2elintim.inv~jureform.lag +
-                                                leg.investigates.lag + jureform.lag*leg.investigates.lag   + elexec  + 
-                                                #e_polity2 +
-                                                e_migdppcln + 
-                                                #e_miurbani + 
-                                                v2eldommon + 
-                                                log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                              , weights=cbps.out$weights,
-                                              data = cbps.out$data) 
-summary(model.elintim.negshockmajor.leginvest)
-p.cbps.intim.leginvest <- interplot(model.elintim.negshockmajor.leginvest, var1="jureform.lag", var2="leg.investigates.lag",
-                                    hist=TRUE) + theme_bw() + labs(x="Lagged legislative investigation", y="Marginal effect",
-                                                                   title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2)  #No real interaction
 
 
-#e_van_comp
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "e_van_comp.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "jureform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "e_van_comp.lag")  #, "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
 
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
-
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + #oppaut.lag + 
-                   e_peaveduc +
-                   e_van_comp.lag  + 
-                   polity2.lag + #polcomp.lag + parcomp.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + leg.constraints.lag  
-                 , data=dataset.matching.complete)
-summary(cbps.out)
-balance(cbps.out)
-
-model.elirreg.negshockmajor.comp <- lmer(v2elirreg.inv~jureform.lag +
-                                           e_van_comp.lag + jureform.lag*e_van_comp.lag   + elexec  + 
-                                           #e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                         , weights=cbps.out$weights,
-                                         data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.comp)
-p.cbps.irreg.comp <- interplot(model.elirreg.negshockmajor.comp, var1="jureform.lag", var2="e_van_comp.lag",
-                               hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect",
-                                                              title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) #No interaction
-
-
-##comp subset, no 0s or 70s
-dataset.matching.complete.b <- subset(dataset.matching.complete, dataset.matching.complete$e_van_comp.lag > 0 &
-                                        dataset.matching.complete$e_van_comp.lag < 70)
-
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + #oppaut.lag + 
-                   e_peaveduc +
-                   e_van_comp.lag  + 
-                   polity2.lag + #polcomp.lag + parcomp.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + leg.constraints.lag  
-                 , data=dataset.matching.complete.b)
-summary(cbps.out)
-balance(cbps.out)
-
-model.elirreg.negshockmajor.comp <- lmer(v2elirreg.inv~jureform.lag +
-                                           e_van_comp.lag + jureform.lag*e_van_comp.lag   + elexec  + 
-                                           #e_polity2 +
-                                           e_migdppcln + 
-                                           #e_miurbani + 
-                                           v2eldommon + 
-                                           log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                         , weights=cbps.out$weights,
-                                         data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.comp)
-p.cbps <- interplot(model.elirreg.negshockmajor.comp, var1="jureform.lag", var2="e_van_comp.lag",
-                    hist=TRUE) + theme_bw() + labs(x="Lagged electoral competition", y="Marginal effect",
-                                                   title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-
-
-
-##parcomp.lag
-
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "jureform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "parcomp.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
-
-dataset.matching <- vdem.nodems[myvars]
-
-dataset.matching$parcomp.lag2 <- dataset.matching$parcomp.lag
-dataset.matching$parcomp.lag2[vdem.nodems$parcomp.lag == -66 |
-                                vdem.nodems$parcomp.lag == -77 |
-                                vdem.nodems$parcomp.lag == -88 ] <- 0
-
-dataset.matching.complete <- na.omit(dataset.matching)
-
-
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag +
-                   e_peaveduc +
-                   #e_van_comp.lag  + 
-                   polity2.lag + #polcomp.lag 
-                   + parcomp.lag2 +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + leg.constraints.lag, data=dataset.matching.complete)
-summary(cbps.out)
-balance(cbps.out)
-
-
-model.elirreg.negshockmajor.parcomp <- lmer(v2elirreg.inv~jureform.lag +
-                                              parcomp.lag2 + jureform.lag*parcomp.lag2 + elexec  + 
-                                              #e_polity2 +
-                                              e_migdppcln + 
-                                              #e_miurbani + 
-                                              v2eldommon + 
-                                              log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                            , weights=cbps.out$weights,
-                                            data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.parcomp)
-p.cbps.irreg.parcomp <- interplot(model.elirreg.negshockmajor.parcomp, var1="jureform.lag", var2="parcomp.lag2",
-                                  hist=TRUE) + theme_bw() + labs(x="Lagged 'Polity'PARCOMP' score", y="Marginal effect",
-                                                                 title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-###
-
-model.elintim.negshockmajor.parcomp <- lmer(v2elintim.inv~jureform.lag +
-                                              parcomp.lag2 + jureform.lag*parcomp.lag2 + elexec  + 
-                                              #e_polity2 +
-                                              e_migdppcln + 
-                                              #e_miurbani + 
-                                              v2eldommon + 
-                                              log(e_mipopula) + (1 | COWcode)# + transitional + altinfo.lag
-                                            , weights=cbps.out$weights,
-                                            data = cbps.out$data) 
-summary(model.elintim.negshockmajor.parcomp)
-p.cbps.intim.parcomp <- interplot(model.elintim.negshockmajor.parcomp, var1="jureform.lag", var2="parcomp.lag2",
-                                  hist=TRUE) + theme_bw() + labs(x="Lagged 'Polity'PARCOMP' score", y="Marginal effect",
-                                                                 title="Marginal Effect of Latent Judicial Independence \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-
-
-
-
-
-
-##Opposition oversight
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "jureform.lag", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "opposition.oversight.lag", "years.since.election")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
-
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
-
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag +
-                   e_peaveduc +
-                   #e_van_comp.lag  + 
-                   #polcomp.lag2 + #polcomp.lag 
-                   + polity2.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + opposition.oversight.lag , data=dataset.matching.complete)
-summary(cbps.out)
-qchisq(.95, df=12+2)  #J-statistic should be less than the .95 quantile of the chi-squared dist,
-#with df = #of parameters + # of moment conditions (two)
-balance(cbps.out)
-stargazer(balance(cbps.out), type="html", 
-          out="C:/Users/Cole/Dropbox/Judicial independence project/cbps balance oversight.html")
-
-
-
-model.elirreg.negshockmajor.oversight <- lmer(v2elirreg.inv~jureform.lag +
-                                                opposition.oversight.lag + jureform.lag*opposition.oversight.lag + elexec  + 
-                                                #  e_polity2 +
-                                                e_migdppcln + 
-                                                democracy.duration.lag + oppaut.lag +
-                                                e_peaveduc +
-                                                #e_van_comp.lag  + 
-                                                #polcomp.lag2 + #polcomp.lag 
-                                                + polity2.lag +
-                                                loggpdpc.lag + 
-                                                e_miurbani +
-                                                + hc.ind.2lag 
-                                              +  lc.ind.2lag
-                                              +transitional
-                                              + exec.respectcon.lag  +  altinfo.lag 
-                                              + opposition.oversight.lag +
-                                                #  e_miurbani + 
-                                                v2eldommon + 
-                                                log(e_mipopula) + years.since.election + (1 | COWcode)# + transitional + altinfo.lag
-                                              , weights=cbps.out$weights,
-                                              data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.oversight)
-p.cbps.irreg.oppover <- interplot(model.elirreg.negshockmajor.oversight, var1="jureform.lag", var2="opposition.oversight.lag",
-                                  hist=TRUE) + theme_bw() + labs(x="Opposition oversight", y="Marginal effect",
-                                                                 title="Marginal Effect of Negative JI Shock \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-stargazer(model.elirreg.negshockmajor.ssdiff, type="html", 
-          out="C:/Users/Cole/Dropbox/Judicial independence project/cbps outcome oversight irreg.html")
-
-png("C:/Users/Cole/Dropbox/Judicial independence project/R plots/cbps marginal effects oversight.png", height=5,
-    width=7, units="in", res=300)
-p.cbps.irreg.oppover
-dev.off()
-
-###
-
-model.elintim.negshockmajor.oversight <- lmer(v2elintim.inv~jureform.lag +
-                                                opposition.oversight.lag + jureform.lag*opposition.oversight.lag + elexec  + 
-                                                #  e_polity2 +
-                                                e_migdppcln + 
-                                                democracy.duration.lag + oppaut.lag +
-                                                e_peaveduc +
-                                                #e_van_comp.lag  + 
-                                                #polcomp.lag2 + #polcomp.lag 
-                                                + polity2.lag +
-                                                loggpdpc.lag + 
-                                                e_miurbani +
-                                                + hc.ind.2lag 
-                                              +  lc.ind.2lag
-                                              +transitional
-                                              + exec.respectcon.lag  +  altinfo.lag 
-                                              + opposition.oversight.lag +
-                                                #  e_miurbani + 
-                                                v2eldommon + 
-                                                log(e_mipopula) + years.since.election + (1 | COWcode)# + transitional + altinfo.lag
-                                              , weights=cbps.out$weights,
-                                              data = cbps.out$data) 
-summary(model.elintim.negshockmajor.oversight)
-p.cbps.intim.oppover <- interplot(model.elintim.negshockmajor.oversight, var1="jureform.lag", var2="opposition.oversight.lag",
-                                  hist=TRUE) + theme_bw() + labs(x="Opposition oversight", y="Marginal effect",
-                                                                 title="Marginal Effect of Negative JI Shock \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-stargazer(model.elintim.negshockmajor.oversight, type="html", 
-          out="C:/Users/Cole/Dropbox/Judicial independence project/cbps outcome oversight intim.html")
-
-png("C:/Users/Cole/Dropbox/Judicial independence project/R plots/cbps marginal effects oversight.png", height=5,
-    width=7, units="in", res=300)
-p.cbps.intim.oppover
-dev.off()
-
-
-
-
-##ss.diff.lag
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "jureform.lag", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "ss.diff.lag", "years.since.election")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
-
-dataset.matching <- vdem.nodems[myvars]
-dataset.matching.complete <- na.omit(dataset.matching)
-dataset.matching.complete$ss.diff.lag.inv <- 100 - dataset.matching.complete$ss.diff.lag
-
-cbps.out <- CBPS(jureform.lag~ democracy.duration.lag + oppaut.lag +
-                   e_peaveduc +
-                   #e_van_comp.lag  + 
-                   #polcomp.lag2 + #polcomp.lag 
-                   + polity2.lag +
-                   loggpdpc.lag + 
-                   e_miurbani +
-                   + hc.ind.2lag 
-                 +  lc.ind.2lag
-                 +transitional
-                 + exec.respectcon.lag  +  altinfo.lag + 
-                   + ss.diff.lag.inv , data=dataset.matching.complete)
-summary(cbps.out)
-qchisq(.95, df=12+2)  #J-statistic should be less than the .95 quantile of the chi-squared dist,
-#with df = #of parameters + # of moment conditions (two)
-balance(cbps.out)
-stargazer(balance(cbps.out), type="html", 
-          out="C:/Users/Cole/Dropbox/Judicial independence project/cbps balance seatshare.html")
-
-
-
-model.elirreg.negshockmajor.ssdiff <- lmer(v2elirreg.inv~jureform.lag +
-                                             ss.diff.lag.inv + jureform.lag*ss.diff.lag.inv + elexec  + 
-                                             #  e_polity2 +
-                                             democracy.duration.lag + oppaut.lag +
-                                             e_peaveduc +
-                                             #e_van_comp.lag  + 
-                                             #polcomp.lag2 + #polcomp.lag 
-                                             + polity2.lag +
-                                             loggpdpc.lag + 
-                                             e_miurbani +
-                                             + hc.ind.2lag 
-                                           +  lc.ind.2lag
-                                           +transitional
-                                           + exec.respectcon.lag  +  altinfo.lag 
-                                           + 
-                                             #  e_miurbani + 
-                                             v2eldommon + 
-                                             log(e_mipopula) + years.since.election + (1 | COWcode)# + transitional + altinfo.lag
-                                           , weights=cbps.out$weights,
-                                           data = cbps.out$data) 
-summary(model.elirreg.negshockmajor.ssdiff)
-p.cbps.irreg.ss <- interplot(model.elirreg.negshockmajor.ssdiff, var1="jureform.lag", var2="ss.diff.lag.inv",
-                             hist=TRUE) + theme_bw() + labs(x="Difference in lower-chamber seat-shares, first and second parties", y="Marginal effect",
-                                                            title="Marginal Effect of Negative JI Shock \non Voting Irregularities") +
-  geom_hline(yintercept=0, linetype=2) 
-
-stargazer(model.elirreg.negshockmajor.ssdiff, type="html", 
-          out="C:/Users/Cole/Dropbox/Judicial independence project/cbps outcome seatshare irreg.html")
-
-png("C:/Users/Cole/Dropbox/Judicial independence project/R plots/cbps marginal effects ss irreg.png", height=5,
-    width=7, units="in", res=300)
-p.cbps.irreg.ss
-dev.off()
-
-
-###
-
-model.elintim.negshockmajor.ssdiff <- lmer(v2elintim.inv~jureform.lag +
-                                             ss.diff.lag.inv + jureform.lag*ss.diff.lag.inv + elexec  + 
-                                             #  e_polity2 +
-                                             democracy.duration.lag + oppaut.lag +
-                                             e_peaveduc +
-                                             #e_van_comp.lag  + 
-                                             #polcomp.lag2 + #polcomp.lag 
-                                             + polity2.lag +
-                                             loggpdpc.lag + 
-                                             e_miurbani +
-                                             + hc.ind.2lag 
-                                           +  lc.ind.2lag
-                                           +transitional
-                                           + exec.respectcon.lag  +  altinfo.lag 
-                                           + 
-                                             #  e_miurbani + 
-                                             v2eldommon + 
-                                             log(e_mipopula) + years.since.election + (1 | COWcode)# + transitional + altinfo.lag
-                                           , weights=cbps.out$weights,
-                                           data = cbps.out$data) 
-summary(model.elintim.negshockmajor.ssdiff)
-p.cbps.intim.ss <- interplot(model.elintim.negshockmajor.ssdiff, var1="jureform.lag", var2="ss.diff.lag.inv",
-                             hist=TRUE) + theme_bw() + labs(x="Difference in lower-chamber seat-shares, first and second parties", y="Marginal effect",
-                                                            title="Marginal Effect of Negative JI Shock \non Intimidation") +
-  geom_hline(yintercept=0, linetype=2) 
-
-stargazer(model.elintim.negshockmajor.ssdiff, type="html", 
-          out="C:/Users/Cole/Dropbox/Judicial independence project/cbps outcome seatshare intim.html")
-
-png("C:/Users/Cole/Dropbox/Judicial independence project/R plots/cbps marginal effects ss irreg.png", height=5,
-    width=7, units="in", res=300)
-p.cbps.intim.ss
-dev.off()
 

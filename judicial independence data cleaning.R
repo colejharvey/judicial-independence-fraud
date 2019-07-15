@@ -106,8 +106,32 @@ write.csv(vdem.small, "C:/Users/Cole/Documents/Research projects/Judicial indepe
 ###Reading in vdem.small
 vdem.small <- read.csv("C:/Users/Cole/Documents/Research projects/Judicial independence and fraud/vdem-small-2018-post1943.csv")
 
+###Most recent election year
+vdem.small$most.recent.election <- vdem.small$year - vdem.small$years.since.election
+#i <- 1
 
-###Getting lagged data
+#for (i in 1:nrow(vdem.small)){
+#  if (is.na(vdem.small$most.recent.election[i]) == TRUE & is.na(vdem.small$v2elirreg.inv[i]) == FALSE) 
+#    vdem.small$most.recent.election[i] <- vdem.small$year[i]
+#}
+
+###Getting posreform for any year between two elections
+vdem.small$country_election_period <- paste(vdem.small$country_name, as.character(vdem.small$most.recent.election), sep="_")
+
+test <- data.frame(tapply(X = vdem.small$reform_positive, INDEX = vdem.small$country_election_period, sum))
+test[,2] <- rownames(test) #Get rownames as factor
+
+  ##Rename v2 to the be the same as country_election_period
+  ##Use mutating join (either with base R or with tidyverse) to combine the tapply result to the vdem.small frame
+  ##Convert to binary so that =1 if there was a reform in the period.
+
+vdem.small$reform.in.period <- NA
+list.big <- list()
+i <- 1
+
+
+
+###Getting 1-year lagged data
 
 vdem.small$jureform.lag <- NA
 vdem.small$hc.ind.lag <- NA

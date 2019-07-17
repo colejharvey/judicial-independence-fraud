@@ -121,15 +121,100 @@ vdem.small$country_election_period <- paste(vdem.small$country_name, as.characte
 test <- data.frame(tapply(X = vdem.small$reform_positive, INDEX = vdem.small$country_election_period, sum))
 test[,2] <- rownames(test) #Get rownames as factor
 
-  ##Rename v2 to the be the same as country_election_period
-  ##Use mutating join (either with base R or with tidyverse) to combine the tapply result to the vdem.small frame
-  ##Convert to binary so that =1 if there was a reform in the period.
+names(test)[names(test)=="V2"] <- "country_election_period"  ##Rename v2 to the be the same as country_election_period
+names(test)[names(test)=="tapply.X...vdem.small.reform_positive..INDEX...vdem.small.country_election_period.."] <- "reform.positive.electionperiod"  ##Rename other variable to be reform.positive.electionperiod
 
-vdem.small$reform.in.period <- NA
-list.big <- list()
+##Convert to binary so that =1 if there was a reform in the period.
+test$reform.positive.electionperiod.binary <- NA
 i <- 1
+for (i in 1:nrow(test)){
+  if (is.na(test$reform.positive.electionperiod[i]) == TRUE) {
+    print("Skipping NA") 
+    next}
+  
+   if (test$reform.positive.electionperiod[i] > 0) test$reform.positive.electionperiod.binary[i] <- 1 
+   if (test$reform.positive.electionperiod[i] == 0) test$reform.positive.electionperiod.binary[i] <- 0
+}
+
+##Use mutating join (either with base R or with tidyverse) to combine the tapply result to the vdem.small frame
+vdem.small <- merge(vdem.small, test)
+
+##Getting controls that are 1-year lagged to the positive reform
+vdem.small$hc.ind.prereform <- NA
+vdem.small$lc.ind.prereform <- NA
+vdem.small$polity2.prereform <- NA
+vdem.small$e_van_comp.prereform <- NA
+vdem.small$oppaut.prereform <- NA
+vdem.small$loggpdpc.prereform <- NA
+vdem.small$democracy.duration.prereform <- NA
+vdem.small$exec.respectcon.prereform <- NA
+vdem.small$leg.constraints.prereform <- NA
+vdem.small$altinfo.prereform <- NA
+vdem.small$parcomp.prereform <- NA
+vdem.small$polcomp.prereform <- NA
+vdem.small$core.civil.society.prereform <- NA
+vdem.small$opposition.oversight.prereform <- NA
+vdem.small$engaged.society.prereform <- NA
+vdem.small$urban.prereform <- NA
+vdem.small$education.prereform <- NA
+vdem.small$transitional.prereform <- NA
 
 
+if (is.na(test$reform.positive.electionperiod[i]) == TRUE) {
+  print("Skipping NA") 
+  next}
+
+
+for(i in 1:nrow(vdem.small)){
+  tryCatch({
+    cow <- as.numeric(vdem.small$COWcode[i])
+    group <- subset(vdem.small, vdem.small$COWcode == cow)
+     for(j in 1:nrow(group)){
+       if (group$reform_positive[j] == 1) {current.year <- as.numeric(vdem.small$year[i]) 
+       lag.year <- current.year - 1
+       group.lag <- subset(group, group$year == lag.year)
+       vdem.small$hc.ind.prereform[i] <- group.lag$v2juhcind
+       vdem.small$lc.ind.prereform[i] <- group.lag$v2juncind
+       vdem.small$polity2.prereform[i] <- group.lag$e_polity2
+       vdem.small$e_van_comp.prereform[i] <- group.lag$e_van_comp
+       vdem.small$oppaut.prereform[i] <- group.lag$v2psoppaut
+       vdem.small$loggpdpc.prereform[i] <- group.lag$e_migdppcln
+       vdem.small$democracy.duration.prereform[i] <- group.lag$e_democracy_duration
+       vdem.small$exec.respectcon.prereform[i] <- group.lag$v2exrescon
+       vdem.small$leg.constraints.prereform[i] <- group.lag$v2xlg_legcon
+       vdem.small$altinfo.prereform[i] <- group.lag$v2xme_altinf
+       vdem.small$parcomp.prereform[i] <- group.lag$e_parcomp
+       vdem.small$polcomp.prereform[i] <- group.lag$e_polcomp
+       vdem.small$core.civil.society.prereform[i] <- group.lag$v2xcs_ccsi
+       vdem.small$opposition.oversight.prereform[i] <- group.lag$v2lgoppart
+       vdem.small$engaged.society.prereform[i] <- group.lag$v2dlengage
+       vdem.small$urban.prereform[i] <- group.lag$e_miurbani
+       vdem.small$education.prereform[i] <- group.lag$e_peaveduc
+       vdem.small$transitional.prereform[i] <- group.lag$transitional}
+       
+    
+    if (group$reform_positive[j] == 0) 
+        { vdem.small$hc.ind.prereform[i] <- vdem.small$v2juhcind[i]
+          vdem.small$lc.ind.prereform[i] <- vdem.small$v2juncind[i]
+          vdem.small$polity2.prereform[i] <- vdem.small$e_polity2[i]
+          vdem.small$e_van_comp.prereform[i] <- vdem.small$e_van_comp[i]
+          vdem.small$oppaut.prereform[i] <- vdem.small$v2psoppaut[i]
+          vdem.small$loggpdpc.prereform[i] <- vdem.small$e_migdppcln[i]
+          vdem.small$democracy.duration.prereform[i] <- vdem.small$e_democracy_duration[i]
+          vdem.small$exec.respectcon.prereform[i] <- vdem.small$v2exrescon[i]
+          vdem.small$leg.constraints.prereform[i] <- vdem.small$v2xlg_legcon[i]
+          vdem.small$altinfo.prereform[i] <- vdem.small$v2xme_altinf[i]
+          vdem.small$parcomp.prereform[i] <- vdem.small$e_parcomp[i]
+          vdem.small$polcomp.prereform[i] <- vdem.small$e_polcomp[i]
+          vdem.small$core.civil.society.prereform[i] <- vdem.small$v2xcs_ccsi[i]
+          vdem.small$opposition.oversight.prereform[i] <- vdem.small$v2lgoppart[i]
+          vdem.small$engaged.society.prereform[i] <- vdem.small$v2dlengage[i]
+          vdem.small$urban.prereform[i] <- vdem.small$e_miurbani[i]
+          vdem.small$education.prereform[i] <- vdem.small$e_peaveduc[i]
+          vdem.small$transitional.prereform[i] <- vdem.small$transitional[i]}
+     }
+     }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+}
 
 ###Getting 1-year lagged data
 

@@ -142,6 +142,8 @@ vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(elexec.lag = lag(elexe
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity2.lag = lag(e_polity2))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(loggpdpc.lag = lag(e_migdppcln))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(civil.society.lag = lag(v2xcs_ccsi))
+
 
 ###Getting posreform for any year between two elections
 
@@ -234,4 +236,13 @@ write.csv(vdem.nodems, "./vdem-2018-no-dems-post1945-polity-sept2018-condensed-t
 ###Next check to get synatx of models right
 ###Binary EV captures reforms that took place *before* the upcoming election (including in the year of the prior election)
 ###So use .cycle variables for selection models, reform.binary as is, and then the un-lagged DVs
-###But then some of the election variables need to lag the DV (polity, oppart, and gdp)
+###But then some of the election variables need to lag the DV (polity, oppart, civil society and gdp)
+
+vdem.small2 <- read.csv("./vdem-small-2018-post1943-tidy.csv")
+
+vdem.small2 <- vdem.small2 %>% dplyr::select(v2elirreg.inv, reform.positive.electionperiod.binary, reform_positive,
+                                          elexec, exec.respectcon.cycle, v2exrescon,
+                                         polity2.lag,  polity2.cycle,
+                                         loggpdpc.lag, 
+                                        year, country_election_period, COWcode)
+vdem.small2 <- vdem.small2 %>% dplyr::arrange(COWcode, year)

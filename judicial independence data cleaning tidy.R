@@ -139,7 +139,9 @@ vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2elirreg.inv.lag = la
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2elintim.inv.lag = lag(v2elintim.inv))   
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2eldommon.lag = lag(v2eldommon)) 
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(elexec.lag = lag(elexec))   
-
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity2.lag = lag(e_polity2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(loggpdpc.lag = lag(e_migdppcln))
 
 ###Getting posreform for any year between two elections
 
@@ -232,4 +234,4 @@ write.csv(vdem.nodems, "./vdem-2018-no-dems-post1945-polity-sept2018-condensed-t
 ###Next check to get synatx of models right
 ###Binary EV captures reforms that took place *before* the upcoming election (including in the year of the prior election)
 ###So use .cycle variables for selection models, reform.binary as is, and then the un-lagged DVs
-###But then some of the election variables need to lead the DV (polity, oppart, and gdp)
+###But then some of the election variables need to lag the DV (polity, oppart, and gdp)

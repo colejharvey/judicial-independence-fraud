@@ -2,8 +2,9 @@
 ###Tidyverse version
 ###July 2019
 
-library(tidyverse)
 rm(list = setdiff(ls(), lsf.str())) #Remove all except functions
+
+library(tidyverse)
 
 ###Loading full dataset
 
@@ -143,6 +144,33 @@ vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity2.lag = lag(e_po
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(loggpdpc.lag = lag(e_migdppcln))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(civil.society.lag = lag(v2xcs_ccsi))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(lc.ind.lag = lag(v2juncind, 1))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(hc.ind.lag = lag(v2juhcind, 1))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(jureform.lag = lag(v2jureform_ord, 1))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(altinfo.lag = lag(v2xme_altinf, 1))
+
+
+
+
+##Lagging selection model variables by 2 years (so that they can predict the 1-year lag positive reform)
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(lc.ind.2lag = lag(v2juncind, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(hc.ind.2lag = lag(v2juhcind, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(oppaut.2lag = lag(v2psoppaut, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity.2lag = lag(e_polity2, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(civil.society.2lag = lag(v2xcs_ccsi, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(opp.oversight.2lag = lag(v2lgoppart, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(urban.2lag = lag(e_miurbani, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(loggpdpc.2lag = lag(e_migdppcln, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(democracy.duration.2lag = lag(e_democracy_duration, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(exec.respectcon.2lag = lag(v2dlengage, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(altinfo.2lag = lag(v2xme_altinf, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(education.2lag = lag(e_peaveduc, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(leg.constraints.2lag = lag(v2xlg_legcon, 2))
+
+
+
+
+
 
 
 ###Getting posreform for any year between two elections

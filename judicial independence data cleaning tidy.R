@@ -102,10 +102,10 @@ write.csv(vdem.small, "C:/Users/Cole/Documents/Research projects/Judicial indepe
 ###Reading in vdem.small
 vdem.small <- read.csv("C:/Users/Cole/Documents/Research projects/Judicial independence and fraud/vdem-small-2018-post1943-tidy.csv")
 
-###Getting second largest party seats share in prior election and years.since.election
-vdem.small$years.since.election <- NA
+###Getting previous.election and years.since.election
 i <- 1
-
+vdem.small$prior.election <- NA
+vdem.small$next.election <- NA
 for(i in 1:nrow(vdem.small)){
   tryCatch({
     cow <- as.numeric(vdem.small$COWcode[i])
@@ -113,51 +113,48 @@ for(i in 1:nrow(vdem.small)){
     current.year <- as.numeric(vdem.small$year[i])
     lag.year <- current.year - 1
     #if (group$year == loopyear) mergeddata$lji[i] <- group.year$LJI else mergeddata$lji <- NA
-    group.year <- subset(group, group$year == lag.year)
+    #group.year <- subset(group, group$year == lag.year)
     prior.elections <- subset(group, is.na(group$v2elirreg.inv) == FALSE & group$year < current.year)
-    if (nrow(prior.elections) < 1) vdem.small$lowchamb.second.seatshare.lag[i] <- NA 
-    if (nrow(prior.elections) < 1) next
-    else
-      mostrecent.election <- subset(prior.elections, prior.elections$year == max(prior.elections$year))
-    vdem.small$years.since.election[i] <- current.year - mostrecent.election$year
-    if (is.na(mostrecent.election$v2elirreg.inv) == TRUE) vdem.small$lowchamb.second.seatshare.lag[i] <- NA
-    else vdem.small$lowchamb.second.seatshare.lag[i] <- mostrecent.election$v2ellostss
+    if (nrow(prior.elections) >= 1)  vdem.small$prior.election[i] <- max(prior.elections$year)
+    
+    next.elections <- subset(group, is.na(group$v2elirreg.inv) == FALSE & group$year >= current.year)
+    if (nrow(next.elections) >= 1)  vdem.small$next.election[i] <- min(next.elections$year)
+    
   })
 }
 
-###Most recent election year
-
-vdem.small$most.recent.election <- vdem.small$year - vdem.small$years.since.election
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(years.since.election = year - prior.election)
 
 ##Lagging positive reform using pipe
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(reform_positive.lag = lag(reform_positive))   
 
-##Lagging electoral manipulation DVs
+
+###Creating a factor for each election period (the period between election A and B is named after B
+vdem.small$country_election_period <- paste(vdem.small$country_name, as.character(vdem.small$next.election), sep="_")
+
+
+
+##Lagging electoral manipulation DVs and other election-specific vars
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2elirreg.inv.lag = lag(v2elirreg.inv))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2elintim.inv.lag = lag(v2elintim.inv))   
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2eldommon.lag = lag(v2eldommon)) 
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(elexec.lag = lag(elexec))   
 
 
 ###Getting posreform for any year between two elections
-vdem.small$country_election_period <- paste(vdem.small$country_name, as.character(vdem.small$most.recent.election), sep="_")
 
-test <- data.frame(tapply(X = vdem.small$reform_positive, INDEX = vdem.small$country_election_period, sum))
+test <- data.frame(tapply(X = vdem.small$reform_positive.lag, INDEX = vdem.small$country_election_period, sum))
 test[,2] <- rownames(test) #Get rownames as factor
 
 names(test)[names(test)=="V2"] <- "country_election_period"  ##Rename v2 to the be the same as country_election_period
-names(test)[names(test)=="tapply.X...vdem.small.reform_positive..INDEX...vdem.small.country_election_period.."] <- "reform.positive.electionperiod"  ##Rename other variable to be reform.positive.electionperiod
+names(test)[names(test)=="tapply.X...vdem.small.reform_positive.lag..INDEX...vdem.small.country_election_period.."] <- "reform.positive.electionperiod"  ##Rename other variable to be reform.positive.electionperiod
 
 
 ##Convert to binary so that =1 if there was a reform in the period.
-test$reform.positive.electionperiod.binary <- NA
-i <- 1
-for (i in 1:nrow(test)){
-  if (is.na(test$reform.positive.electionperiod[i]) == TRUE) {
-    print("Skipping NA") 
-    next}
-  
-  if (test$reform.positive.electionperiod[i] > 0) test$reform.positive.electionperiod.binary[i] <- 1 
-  if (test$reform.positive.electionperiod[i] == 0) test$reform.positive.electionperiod.binary[i] <- 0
-}
+
+test <- test %>% mutate(reform.positive.electionperiod.binary = if_else(reform.positive.electionperiod > 0, 1, 0))
+
+
 
 ##Use mutating join (either with base R or with tidyverse) to combine the tapply result to the vdem.small frame
 vdem.small <- merge(vdem.small, test)
@@ -165,24 +162,6 @@ vdem.small <- merge(vdem.small, test)
 
 
 ##Getting selection-model covariates that are for the first year of the election period
-vdem.small$hc.ind.cycle <- NA
-vdem.small$lc.ind.cycle <- NA
-vdem.small$polity2.cycle <- NA
-vdem.small$e_van_comp.cycle <- NA
-vdem.small$oppaut.cycle <- NA
-vdem.small$loggpdpc.cycle <- NA
-vdem.small$democracy.duration.cycle <- NA
-vdem.small$exec.respectcon.cycle <- NA
-vdem.small$leg.constraints.cycle <- NA
-vdem.small$altinfo.cycle <- NA
-vdem.small$parcomp.cycle <- NA
-vdem.small$polcomp.cycle <- NA
-vdem.small$core.civil.society.cycle <- NA
-vdem.small$opposition.oversight.cycle <- NA
-vdem.small$engaged.society.cycle <- NA
-vdem.small$urban.cycle <- NA
-vdem.small$education.cycle <- NA
-vdem.small$transitional.cycle <- NA
 
 ###Find first year in election cycle
 vdem.small <- vdem.small %>% group_by(country_election_period) %>% mutate(first.year.cycle = min(year))
@@ -211,7 +190,7 @@ vars <- c("v2juhcind",
 ###Create a dataset of only the first years in each election cycle
 
 data.firstyears <- vdem.small %>% group_by(country_election_period) %>% filter(year == first.year.cycle) %>% 
-   select(vars)
+  select(vars)
 
 ###Rename the first-year variables so they can be joined to vdem.small
 data.firstyears <- rename(data.firstyears, hc.ind.cycle = v2juhcind,
@@ -239,7 +218,7 @@ vdem.small <- vdem.small %>%
 
 ###Write vdem.small
 
-write.csv(vdem.small, "C:/Users/Cole/Documents/Research topics literature/V-Dem/vdem-small-2018-post1943-tidy.csv")
+write.csv(vdem.small, "./vdem-small-2018-post1943-tidy.csv")
 
 ###Make vdem.nodems
 
@@ -248,4 +227,9 @@ vdem.nodems <- subset(vdem.nodems, vdem.nodems$e_multiparty_elections == 1) #Onl
 rm(vdem.small)
 
 ###Writing vdem.nodems
-write.csv(vdem.nodems, "C:/Users/Cole/Documents/Research topics literature/V-Dem/vdem-2018-no-dems-post1945-polity-sept2018-condensed-tidy.csv")
+write.csv(vdem.nodems, "./vdem-2018-no-dems-post1945-polity-sept2018-condensed-tidy.csv")
+
+###Next check to get synatx of models right
+###Binary EV captures reforms that took place *before* the upcoming election (including in the year of the prior election)
+###So use .cycle variables for selection models, reform.binary as is, and then the un-lagged DVs
+###But then some of the election variables need to lead the DV (polity, oppart, and gdp)

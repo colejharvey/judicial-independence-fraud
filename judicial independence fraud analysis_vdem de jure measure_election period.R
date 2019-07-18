@@ -1,73 +1,52 @@
 ###Analysis script
 ###VDEM judicial reform variable (positive reform for ebal) by election period
+###Variable is reform.positive.lag.electionperiod.binary
 ###July 2019
 ###Post-CPS analysis
 rm(list = setdiff(ls(), lsf.str())) #Remove all except functions
 
-
+library(tidyverse)
 library(lme4)
 library(lmtest)
 library(sandwich)
-library(MASS)
+#library(MASS)
 library(ggplot2)
 library(interplot)
-library(MatchIt)
-library(MatchingFrontier)
-library(Zelig)
+
 
 #####Loading dataset####
-vdem.nodems <- read.csv("./vdem-2018-no-dems-post1945-polity-sept2018-condensed.csv")
-vdem.nodems$comp_by_oppaut <- scale(vdem.nodems$e_van_comp.lag * vdem.nodems$oppaut.lag)
-vdem.nodems$ss.diff.lag <- vdem.nodems$lowchamb.seatshare.largest.lag - vdem.nodems$lowchamb.second.seatshare.lag
-
-vdem.nodems$polcomp.lag2 <- vdem.nodems$polcomp.lag
-vdem.nodems$polcomp.lag2[vdem.nodems$polcomp.lag == -77] <- 0
-vdem.nodems$polcomp.lag2[vdem.nodems$polcomp.lag == -66 | vdem.nodems$polcomp.lag == -88] <- NA
-
-vdem.nodems$parreg2.lag <- vdem.nodems$parreg.lag
-vdem.nodems$parreg2.lag[vdem.nodems$parreg.lag == -77] <- 0
-vdem.nodems$parreg2.lag[vdem.nodems$parreg.lag == -66 | vdem.nodems$parreg.lag == -88] <- NA
-
-vdem.nodems$parcomp2.lag <- vdem.nodems$parcomp.lag
-vdem.nodems$parcomp2.lag[vdem.nodems$parcomp.lag == -77] <- 0
-vdem.nodems$parcomp2.lag[vdem.nodems$parcomp.lag == -66 | vdem.nodems$parcomp.lag == -88] <- NA
-
-vdem.nodems$regtrans2.lag <- vdem.nodems$regtrans.lag
-vdem.nodems$regtrans2.lag[vdem.nodems$regtrans.lag < -2 | vdem.nodems$regtrans.lag > 3] <- NA
-
-vdem.nodems$jureform.lag <- as.factor(vdem.nodems$jureform.lag)
-vdem.nodems$jureform.lag <- relevel(vdem.nodems$jureform.lag, ref= "1")
-
+vdem.nodems <- read.csv("./vdem-2018-no-dems-post1945-polity-sept2018-condensed-tidy.csv")
 
 
 
 #####
 #Entropy balancing
-
-
+library(ebal)
 
 
 ##polity2
 
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
-            "hc.ind.2lag", "oppaut.lag", "elexec", "e_peaveduc",  
-            "polity2.lag", "e_polity2", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
-            "country_name", "reform.positive.electionperiod.binary", "e_migdppcln", "loggpdpc.lag",
-            "democracy.duration.lag", "exec.respectcon.lag", "leg.constraints.lag", 
-            "altinfo.lag", "polity2.lag", "years.since.election")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+myvars <- c("COWcode", "year", "transitional.cycle", "v2elirreg.inv", "v2elintim.inv", "lc.ind.cycle", 
+            "hc.ind.cycle", "oppaut.cycle", "elexec", "education.cycle",  
+            "polity2.cycle", "polity2.lag", "urban.cycle", "v2eldommon", "e_mipopula", 
+            "country_name", "reform.positive.electionperiod.binary", "loggpdpc.lag", "loggpdpc.cycle",
+            "democracy.duration.cycle", "exec.respectcon.cycle", "leg.constraints.cycle", 
+            "altinfo.cycle", 
+             "years.since.election")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
 
 dataset.matching <- vdem.nodems[myvars]
 dataset.matching.complete <- na.omit(dataset.matching)
 
 
-myvars <- c("democracy.duration.lag", "oppaut.lag",  "polity2.lag", "years.since.election",
-             "loggpdpc.lag", "e_miurbani",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.lag", "altinfo.lag", "e_peaveduc",
-            "leg.constraints.lag", "COWcode", "year")  #"lji.lag"
+myvars <- c("democracy.duration.cycle", "oppaut.cycle", "polity2.cycle", #"years.since.election",
+             "loggpdpc.cycle", "urban.cycle",
+            "hc.ind.cycle",  "lc.ind.cycle", "transitional.cycle", "exec.respectcon.cycle", "altinfo.cycle",
+            "education.cycle",
+            "leg.constraints.cycle", "COWcode", "year")  #"lji.lag"
 ebal.covariates <- dataset.matching.complete[myvars]
 #ebal.covariates.var <- ebal.covariates
 
-ebal.test <- ebalance(Treatment=dataset.matching.complete$reform.positive.electionperiod.binary, X = ebal.covariates[c(-15, -16)])
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform.positive.electionperiod.binary, X = ebal.covariates[c(-13, -14)])
 
 
 
@@ -94,9 +73,9 @@ dataset.matching.complete.w <- data.frame(rbind(dataset.matching.complete.treat,
 
 ###regression
 elirreg.posreform.polity.base <- lmer(v2elirreg.inv~reform.positive.electionperiod.binary +
-                                            polity2.lag  + elexec + 
-                                            #e_polity2 +
-                                            e_migdppcln + 
+                                             elexec + 
+                                        polity2.lag +
+                                        loggpdpc.lag + 
                                             #e_miurbani + 
                                             v2eldommon + 
                                             log(e_mipopula) + (1 | COWcode), REML=FALSE 
@@ -107,9 +86,9 @@ summary(elirreg.posreform.polity.base)
 
 
 mm.elirreg.posreform.polity.all <- lmer(v2elirreg.inv~reform.positive.electionperiod.binary +
-                                              polity2.lag + reform.positive.electionperiod.binary*polity2.lag   + elexec + 
-                                              # e_polity2 +
-                                              e_migdppcln + 
+                                               reform.positive.electionperiod.binary*polity2.lag   + elexec + 
+                                          polity2.lag +
+                                          loggpdpc.lag + 
                                               #e_miurbani + 
                                               v2eldommon + 
                                               log(e_mipopula) #+ transitional + altinfo.lag 

@@ -40,7 +40,7 @@ myvars <- c("COWcode", "year", "transitional", "v2elvotbuy.inv", "v2elirreg.inv"
             "e_polity2", "e_migdppcln", "e_miurbani", "v2elmulpar", "v2eldommon", "e_mipopula", 
             "country_name", "elexec", "e_multiparty_elections", "v2jureform", "v2jureform_ord", "v2jupurge", "v2jupurge_ord",
             "v2jupack", "v2jupack_ord", "v2x_jucon", "e_democracy_duration", "e_regtrans", "v2exrescon", "v2xlg_legcon",
-            "v2x_freexp_thick", "v2x_freexp", "v2xme_altinf", "e_polcomp", "e_parcomp",
+            "v2x_freexp_thick", "v2x_freexp", "v2xme_altinf", "e_polcomp", "e_parcomp", "e_exconst", "e_democ", "e_autoc", 
             "v2x_frassoc_thick",  "v2xcs_ccsi", "v2xps_party", "v2x_civlib", "v2x_clpol", "v2x_diagacc", "v2ellocumul", "v2ellocons",
             "v2elparlel", "v2elloeldm", "v2ellovtlg", "v2ellovtsm", "v2ellostlg",
             "v2elloseat", "v2ellostsl", "v2ellostsm","v2ellostss", "v2eltvrig", "v2psbars", "v2lginvstp",
@@ -48,6 +48,21 @@ myvars <- c("COWcode", "year", "transitional", "v2elvotbuy.inv", "v2elirreg.inv"
             "v2mecrit", "v2mebias", "e_parreg")  #v2csanmvch has subcodes (anti-system movement type)
 vdem.small <- vdem.short[myvars]
 rm(vdem.short)
+
+##Adjusting polity score to remove the values for xconst, which involve constraints (including judicial constraints) on the exec
+vdem.small$xconst.value <- NA
+vdem.small$xconst.value[vdem.small$e_exconst == 4] <- -1
+vdem.small$xconst.value[vdem.small$e_exconst == 5] <- -2
+vdem.small$xconst.value[vdem.small$e_exconst == 6] <- -3
+vdem.small$xconst.value[vdem.small$e_exconst == 7] <- -4
+
+vdem.small$xconst.value[vdem.small$e_exconst == 1] <- 3
+vdem.small$xconst.value[vdem.small$e_exconst == 2] <- 2
+vdem.small$xconst.value[vdem.small$e_exconst == 3] <- 1
+
+vdem.small <- vdem.small %>% mutate(polity2.adj = e_polity2 + xconst.value)
+
+#Negshock variables
 
 vdem.small$jind.negshock <- NA
 vdem.small$jind.negshock <- 0
@@ -129,6 +144,8 @@ vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(years.since.election =
 ##Lagging positive reform using pipe
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(reform_positive.lag = lag(reform_positive))   
 
+##Laggin VDEM measure of judicial independence overall (jucon) by one year
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(jucon.lag = lag(v2x_jucon))   
 
 ###Creating a factor for each election period (the period between election A and B is named after B
 vdem.small$country_election_period <- paste(vdem.small$country_name, as.character(vdem.small$next.election), sep="_")
@@ -141,6 +158,7 @@ vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2elintim.inv.lag = la
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(v2eldommon.lag = lag(v2eldommon)) 
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(elexec.lag = lag(elexec))   
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity2.lag = lag(e_polity2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity2.adj.lag = lag(polity2.adj))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(opposition.oversight.lag = lag(v2lgoppart))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(loggpdpc.lag = lag(e_migdppcln))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(civil.society.lag = lag(v2xcs_ccsi))
@@ -157,6 +175,7 @@ vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(lc.ind.2lag = lag(v2ju
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(hc.ind.2lag = lag(v2juhcind, 2))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(oppaut.2lag = lag(v2psoppaut, 2))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity.2lag = lag(e_polity2, 2))
+vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(polity2.adj.2lag = lag(polity2.adj, 2))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(civil.society.2lag = lag(v2xcs_ccsi, 2))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(opp.oversight.2lag = lag(v2lgoppart, 2))
 vdem.small <- vdem.small %>% group_by(COWcode) %>% mutate(urban.2lag = lag(e_miurbani, 2))

@@ -144,8 +144,8 @@ mm.elintim.posreform.polity.all <- lmer(v2elintim.inv~reform_positive.lag +
                                         data = dataset.matching.complete.w)
 summary(mm.elintim.posreform.polity.all)
 p2.intim <- interplot(mm.elintim.posreform.polity.all, var1="reform_positive.lag", var2="polity2.adj.lag",
-                      hist=TRUE) + theme_bw() + labs(x="Polity score", y="Marginal effect" , 
-                                                     title="Marginal effect of negative JI shock on government intimidation") +
+                      hist=TRUE) + theme_bw() + labs(x="Adjusted Polity score", y="Marginal effect" , 
+                                                     title="Marginal effect of positive judicial reform on government intimidation") +
   geom_hline(yintercept=0, linetype=2)  #Boost in JI reduces intimidation in less comp areas
 
 

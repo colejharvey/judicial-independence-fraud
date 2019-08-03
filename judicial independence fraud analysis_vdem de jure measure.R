@@ -11,9 +11,21 @@ library(lme4)
 library(lmtest)
 library(ggplot2)
 library(interplot)
+library(stargazer)
 
 #####Loading dataset####
 vdem.nodems <- read.csv("./vdem-2018-no-dems-post1945-polity-sept2018-condensed-tidy.csv")
+
+vdem.nodems.elections <- subset(vdem.nodems, is.na(vdem.nodems$v2elirreg.inv)==FALSE)
+p.polity <- ggplot(vdem.nodems.elections, aes(x=e_polity2)) + 
+  geom_histogram(color="black", fill="white", binwidth = 1) + 
+  labs(x = "Polity score", y = "Count", title = "Observations in dataset by Polity score") +
+  theme_bw()
+
+png("./Plots/polity histogram.png", height=5,
+    width=7, units="in", res=300)
+p.polity
+dev.off()
 
 
 #####
@@ -404,10 +416,17 @@ library(stargazer)
 stargazer(elirreg.posreform.polity.base, mm.elirreg.posreform.polity.all, elirreg.posreform.civil.base,
           mm.elirreg.posreform.civil.all, elirreg.posreform.oversight.base, mm.elirreg.posreform.oversight,
           type="html", out="./Drafts/ebal results irreg.html")
+
+stargazer(elirreg.posreform.polity.base, mm.elirreg.posreform.polity.all, elirreg.posreform.civil.base,
+          mm.elirreg.posreform.civil.all, elirreg.posreform.oversight.base, mm.elirreg.posreform.oversight,
+          type="latex", digits=2) #Need to change to stars at <.05 and <.01 only
   ##Intimidation
 stargazer(elintim.posreform.polity.base, mm.elintim.posreform.polity.all, elintim.posreform.civil.base,
           mm.elintim.posreform.civil.all, elintim.posreform.oversight.base, mm.elintim.posreform.oversight,
           type="html", out="./Drafts/ebal results intim.html")
+stargazer(elintim.posreform.polity.base, mm.elintim.posreform.polity.all, elintim.posreform.civil.base,
+          mm.elintim.posreform.civil.all, elintim.posreform.oversight.base, mm.elintim.posreform.oversight,
+          type="latex", digits=2)
 
 
 
@@ -480,7 +499,7 @@ residual.deviance <- model.selection$deviance
 p.value <- 1- pchisq((null.deviance-residual.deviance), df = (694-682))  #pchisq gives the proportion of the distribution to the left of the value, so subtract from 1 to get the p-value
 
 stargazer(model.selection, type="html", out="./Drafts/selection model results.html")
-
+stargazer(model.selection, type="latex", digits = 2)
 
 
 ####Plot of lji.2lag and posreform.lag
@@ -634,6 +653,8 @@ dev.off()
 
 stargazer(mm.elirreg.lji.opp, mm.elirreg.jucon.opp, mm.elirreg.hcind.opp, mm.elirreg.lcind.opp, type="html", 
           out="./Drafts/table alternative measures by oversight.html")
+
+stargazer(mm.elirreg.lji.opp, mm.elirreg.jucon.opp, mm.elirreg.hcind.opp, mm.elirreg.lcind.opp, type="latex", digits=2)
 
 ############ Multiple plot function
 #
@@ -1145,6 +1166,8 @@ stargazer(model.elirreg.negshockmajor.polity, model.elirreg.negshockmajor.ccs, m
           type="html", 
           out="./Drafts/cbps outcome models irreg.html")
 
+stargazer(model.elirreg.negshockmajor.polity, model.elirreg.negshockmajor.ccs, model.elirreg.negshockmajor.oppover, 
+          type="latex", digits = 2)
 
 
 

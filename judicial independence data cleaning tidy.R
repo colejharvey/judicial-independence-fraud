@@ -293,3 +293,21 @@ vdem.small2 <- vdem.small2 %>% dplyr::select(v2elirreg.inv, reform.positive.elec
                                          loggpdpc.lag, 
                                         year, country_election_period, COWcode)
 vdem.small2 <- vdem.small2 %>% dplyr::arrange(COWcode, year)
+
+
+###Creating an election period variable
+###Restricted to data after 1989
+
+vdem.nodems.elections.89 <- subset(vdem.nodems.elections, vdem.nodems.elections$year >= 1989 )
+
+election.period <- matrix(1, ncol = 1, nrow = 1) #This is okay because the first ob, Afghanistan, has 1 election only
+for(i in unique(vdem.nodems.elections.89$COWcode)){
+  group <- subset(vdem.nodems.elections.89, vdem.nodems.elections.89$COWcode == i)
+  group$election.period <- seq(1:nrow(group))
+  election.period <- c(election.period, group$election.period)
+}
+election.period <- as.matrix(election.period)
+election.period <- election.period[2:520 ,]
+
+vdem.nodems.elections.89 <- cbind(vdem.nodems.elections.89, election.period)
+

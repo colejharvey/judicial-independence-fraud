@@ -10,8 +10,13 @@ library(tidyverse)
 library(lme4)
 library(lmtest)
 library(ggplot2)
+library(ggeffects)
 library(interplot)
+library(interplot.medline)
+library(interflex)
 library(stargazer)
+library(wfe)
+library(plm)
 
 #####Loading dataset####
 vdem.nodems <- read.csv("./vdem-2018-no-dems-post1945-polity-sept2018-condensed-tidy.csv")
@@ -27,6 +32,110 @@ png("./Plots/polity histogram.png", height=5,
 p.polity
 dev.off()
 
+###Treatment pattern
+library(PanelMatch)
+DisplayTreatment(unit.id = "COWcode",
+                 time.id = "year", legend.position = "none",
+                 xlab = "year", ylab = "Country Code",
+                 treatment = "reform_positive.lag", data = vdem.nodems.elections)
+
+###Checking raw data via interflex
+  ##Dot is median, thick bars are 25-75 percentiles, thin bars are 5-95 percentiles
+inter.raw(data = vdem.nodems.elections, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag") #Not great, not awful
+
+
+###Checking kernal estimator via interflex
+inter.kernel(data = vdem.nodems.elections, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag",
+             FE = c("COWcode","year"), na.rm=TRUE) #Non-linear at the extremes, but otherwise a good linear pattern for the bulk of the data
+
+
+###2-way FE approach
+vdem.nodems.elections$COW.factor <- factor(vdem.nodems.elections$COWcode)
+vdem.nodems.elections$year.factor <- factor(vdem.nodems.elections$year)
+
+model.2wfe <- lm(v2elirreg.inv ~ COW.factor + year.factor + reform_positive.lag + 
+                                 polity2.adj.lag + reform_positive.lag*polity2.adj.lag, data = vdem.nodems.elections)
+summary(model.2wfe)
+interplot(model.2wfe, var1="reform_positive.lag", var2 = "polity2.adj.lag") #Produces same results as entropy bal
+interplot.medline(model.2wfe, var1="reform_positive.lag", var2 = "polity2.adj.lag")
+inter.binning(data=vdem.nodems.elections, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag",
+              FE = c("COWcode","year"), na.rm=TRUE)
+mydf <- ggeffect(model.2wfe, terms = c("polity2.adj.lag", "reform_positive.lag"))
+ggplot(mydf, aes(x, predicted, color = group)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)
+plot(mydf) #Marginal effects plot
+
+
+###2-way FE with election-year controls
+
+###2-way FE approach
+vdem.nodems.elections$COW.factor <- factor(vdem.nodems.elections$COWcode)
+vdem.nodems.elections$year.factor <- factor(vdem.nodems.elections$year)
+
+model.2wfe.c <- lm(v2elirreg.inv ~ COW.factor + year.factor + v2eldommon + elexec + reform_positive.lag + 
+                   polity2.adj.lag + reform_positive.lag*polity2.adj.lag, data = vdem.nodems.elections)
+summary(model.2wfe.c)
+interplot(model.2wfe.c, var1="reform_positive.lag", var2 = "polity2.adj.lag") #Produces same results as entropy bal
+interplot.medline(model.2wfe.c, var1="reform_positive.lag", var2 = "polity2.adj.lag")
+inter.binning(data=vdem.nodems.elections, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag",
+              Z = c("elexec", "v2eldommon"),
+              FE = c("COWcode","year"), na.rm=TRUE)
+mydf <- ggeffect(model.2wfe.c, terms = c("polity2.adj.lag", "reform_positive.lag"))
+ggplot(mydf, aes(x, predicted, color = group)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .1)
+plot(mydf) #Marginal effects plot
+
+###Weighted 2-way FE approach (Imai and Kim 2020)
+
+small.data <- vdem.nodems.elections %>% dplyr::select(COW.factor, year.factor, v2elirreg.inv, reform_positive.lag, elexec, v2eldommon, polity2.adj.lag)
+small.data$COW.factor <- as.numeric(small.data$COW.factor)
+small.data$year.factor <- as.numeric(small.data$year.factor)
+small.data$reform_positive.lag <- as.numeric(small.data$reform_positive.lag)
+small.data$polity2.adj.lag <- as.numeric(small.data$polity2.adj.lag)
+small.data$elexec <- as.numeric(small.data$elexec)
+small.data$v2eldommon <- as.numeric(small.data$v2eldommon)
+
+
+
+
+model.2wfe.w <- wfe(v2elirreg.inv ~  reform_positive.lag + elexec + 
+                                     #loggpdpc.lag + 
+                                     v2eldommon + 
+                                     #log(e_mipopula) +
+                                     polity2.adj.lag + 
+                                     reform_positive.lag*polity2.adj.lag, data = vdem.nodems.elections,
+                                     unit.index = "COWcode", time.index = "year", treat = "reform_positive.lag",
+                                     estimator = "did", qoi = "ate")
+summary(model.2wfe.w)  #Unit refers to countries here; currently not working (SEs are all zero)
+
+###Weighted 2-way DiD approach (Imai and Kim 2020)
+
+model.2wfe.did <- wfe(v2elirreg.inv ~  reform_positive.lag + elexec + 
+                      #loggpdpc.lag + 
+                      v2eldommon + 
+                      #log(e_mipopula) +
+                      polity2.adj.lag + 
+                      reform_positive.lag*polity2.adj.lag, data = small.data,
+                    unit.index = "COW.factor", time.index = "year.factor", treat = "reform_positive.lag",
+                    method = "unit", estimator = "Mdid")
+summary(model.2wfe.did)  #Currently not working
+
+
+###Hausman test for RE vs FE
+
+form <- v2elirreg.inv ~  reform_positive.lag + elexec + v2eldommon + polity2.adj.lag +  reform_positive.lag*polity2.adj.lag
+
+wi <- plm(form, data = vdem.nodems.elections, model = "within", index = "COWcode")
+re <- plm(form, data = vdem.nodems.elections, model = "random", index = "COWcode")
+phtest(wi, re)
+phtest(form, data = vdem.nodems.elections, index= "COWcode")
+phtest(form, data = vdem.nodems.elections, method = "aux", index = "COWcode")
+
+# robust Hausman test (regression-based)
+phtest(form, data = vdem.nodems.elections, method = "aux", vcov = vcovHC, index = "COWcode")
+
 
 #####
 #Entropy balancing
@@ -37,7 +146,7 @@ library(ebal)
  
 ##polity2.adj
 
-myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
+myvars <- c("COWcode", "year", "transitional", "v2elparlel", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
             "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  
             "polity2.adj.lag", "polity2.adj.2lag", "urban.2lag", "v2elmulpar", "v2eldommon", "e_mipopula", 
             "country_name", "reform_positive.lag", "e_migdppcln", "loggpdpc.2lag",
@@ -81,7 +190,7 @@ dataset.matching.complete.w <- data.frame(rbind(dataset.matching.complete.treat,
 
 
 ###regression
-elirreg.posreform.polity.base <- lmer(v2elirreg.inv~reform_positive.lag +
+elirreg.posreform.polity.base <- lmer(v2elirreg.inv~reform_positive.lag + v2elparlel +
                                         polity2.adj.lag  + elexec + 
                                             #e_polity2 +
                                         loggpdpc.lag + 
@@ -94,7 +203,7 @@ elirreg.posreform.polity.base <- lmer(v2elirreg.inv~reform_positive.lag +
 summary(elirreg.posreform.polity.base)
 
 
-mm.elirreg.posreform.polity.all <- lmer(v2elirreg.inv~reform_positive.lag +
+mm.elirreg.posreform.polity.all <- lmer(v2elirreg.inv~reform_positive.lag + v2elparlel +
                                           polity2.adj.lag + reform_positive.lag*polity2.adj.lag   + elexec + 
                                               # e_polity2 +
                                           loggpdpc.lag + 
@@ -109,6 +218,9 @@ p2 <- interplot(mm.elirreg.posreform.polity.all, var1="reform_positive.lag", var
                 hist=TRUE) + theme_bw() + labs(x="Adjusted Polity score (1-year lag)", y="Marginal effect" , 
                                                title="Marginal effect of positive reform on intentional \nvoting irregularities") +
   geom_hline(yintercept=0, linetype=2)   #No effect for fraud
+inter.binning(data=dataset.matching.complete.w, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag",
+              Z = c("v2elparlel", "elexec", "loggpdpc.lag", "v2eldommon", "e_mipopula"), weights = "ebal.test.w", na.rm=TRUE)
+
 
 
 png("./Plots/ebal polity irreg.png", height=5,
@@ -127,6 +239,19 @@ ss2-ss1
 ss2 <- -0.34*0 + -0.08*-4 + .04*-4*0
 ss3 <- -0.34*0 + -0.08*3 + .04*3*0  #DV range = 2.86 + 2.38 = 5.24
 (ss2-ss3) / 5.24 
+
+
+mm.elirreg.posreform.polity.all.fe <- plm(v2elirreg.inv~reform_positive.lag + v2elparlel +
+                                            polity2.adj.lag + reform_positive.lag*polity2.adj.lag   + elexec + 
+                                            # e_polity2 +
+                                            loggpdpc.lag + 
+                                            #e_miurbani + 
+                                            v2eldommon + 
+                                            log(e_mipopula), weights = ebal.test.w, data = dataset.matching.complete.w, index = "COWcode")
+summary(mm.elirreg.posreform.polity.all.fe)  ##FE model provides even stronger results
+inter.binning(data=dataset.matching.complete.w, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag",
+              Z = c("v2elparlel", "elexec", "loggpdpc.lag", "v2eldommon", "e_mipopula"), weights = "ebal.test.w",
+              FE = c("COWcode","year"), na.rm=TRUE)
 
 
 ###

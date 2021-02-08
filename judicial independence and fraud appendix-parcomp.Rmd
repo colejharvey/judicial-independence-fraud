@@ -23,7 +23,7 @@ library(fastDummies)
 
 
 
-vdem.nodems <- read.csv("./vdem-2018-no-dems-cheibub-post1945-oct2020-condensed-tidy.csv")
+vdem.nodems <- read.csv("./vdem-2018-no-dems-parcomp-post1945-oct2020-condensed-tidy.csv")
 #vdem.nodems <- vdem.nodems %>% group_by(COWcode) %>% mutate(govseat.frac.lag = lag(govseat.frac, 1))
 #vdem.nodems <- vdem.nodems %>% group_by(COWcode) %>% mutate(govseat.frac.2lag = lag(govseat.frac, 2))
 vdem.nodems.elections <- subset(vdem.nodems, is.na(vdem.nodems$v2elirreg.inv)==FALSE)
@@ -35,6 +35,9 @@ vdem.nodems.elections <- fastDummies::dummy_cols(vdem.nodems.elections, select_c
 
 vdem.nodems.elections$COW.factor <- factor(vdem.nodems.elections$COWcode)
 vdem.nodems.elections$year.factor <- factor(vdem.nodems.elections$year)
+
+vdem.nodems.elections <- vdem.nodems.elections %>% filter(parcomp.lag >= 0)
+
 ```
 
 ##LJI and other measures of independence
@@ -482,11 +485,11 @@ dev.off()
 
 ###CBPS method
 ```{r cbps for oversight}
-myvars <- c("COWcode", "v2elirreg.inv", "democracy.duration.2lag", "oppaut.2lag", "opp.oversight.2lag",  "v2elintmon", "v2elparlel_1",  "v2elparlel_2", "reform_negative.lag",
-            "opposition.oversight.lag",
-            "loggpdpc.2lag", "urban.2lag",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
-            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag", "v2eldommon", "e_mipopula")
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2",
+            "opposition.oversight.lag", "opp.oversight.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")
 
 dataset.matching <- vdem.nodems.elections[myvars]
 dataset.matching.complete <- na.omit(dataset.matching)
@@ -500,7 +503,7 @@ cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
                    + hc.ind.2lag 
                  +  lc.ind.2lag
                  + exec.respectcon.2lag  +  altinfo.2lag + 
-                   + leg.constraints.2lag, data=dataset.matching.complete)
+                   + leg.constraints.2lag + transitional, data=dataset.matching.complete)
 summary(cbps.out)
 oversight.bal <- balance(cbps.out)
 
@@ -517,8 +520,7 @@ model.elirreg.negshockmajor.oppover <-
                                               # e_polity2 +
                                               loggpdpc.lag  
                                               #e_miurbani + 
-                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag +  + 
-                                              log(e_mipopula) + factor(COWcode)
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag +    COW.factor
                                             , weights=cbps.out$weights,
                                             data = cbps.out$data) 
 #summary(model.elirreg.negshockmajor.oppover)
@@ -535,10 +537,11 @@ dev.off()
 ```
 
 ```{r cbps polity}
-myvars <- c("COWcode", "v2elirreg.inv", "democracy.duration.2lag", "oppaut.2lag",  "polity2.adj.2lag", "polity2.adj.lag", "v2elintmon", "v2elparlel_1", "v2elparlel_2", "reform_negative.lag",
-            "loggpdpc.2lag", "urban.2lag",
-            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
-            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag", "v2eldommon", "e_mipopula")
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2",
+            "polity2.adj.lag", "polity2.adj.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")
 
 
 
@@ -548,7 +551,7 @@ dataset.matching.complete <- na.omit(dataset.matching)
 ###Finding scores/weights 
 
 cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
-                   education.2lag +
+                   education.2lag + transitional +
                    #e_van_comp.lag  + 
                    polity2.adj.2lag + #polcomp.lag + parcomp.lag +
                    loggpdpc.2lag + 
@@ -569,7 +572,7 @@ model.elirreg.negshockmajor.polity <- lm(v2elirreg.inv~reform_positive.lag +
                                              loggpdpc.lag + 
                                              #e_miurbani + 
                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag +  
-                                             log(e_mipopula) + factor(COWcode)
+                                            COW.factor
                                         , weights=cbps.out$weights,
                                         data = cbps.out$data) 
 #summary(model.elirreg.negshockmajor.polity)
@@ -587,10 +590,10 @@ dev.off()
 
 Elcomp
 ```{r cbps elcomp}
-myvars <- c("COWcode", "v2elirreg.inv", "democracy.duration.2lag", "oppaut.2lag",  "elcompindex.m.2lag", "elcompindex.m.lag",  "v2elintmon", "v2elparlel_1", "v2elparlel_2", "reform_negative.lag", 
+myvars <- c("COW.factor", "v2elirreg.inv",  "transitional", "democracy.duration.2lag", "oppaut.2lag",  "elcompindex.m.2lag", "elcompindex.m.lag",  "v2elintmon", "v2elparlel_1", "v2elparlel_2", "reform_negative.lag", 
             "loggpdpc.2lag", "urban.2lag",
             "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
-            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag", "v2eldommon", "e_mipopula")
+            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag")
 
 
 
@@ -600,7 +603,7 @@ dataset.matching.complete <- na.omit(dataset.matching)
 ###Finding scores/weights 
 
 cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
-                   education.2lag +
+                   education.2lag + transitional +
                    #e_van_comp.lag  + 
                    elcompindex.m.2lag + #polcomp.lag + parcomp.lag +
                    loggpdpc.2lag + 
@@ -621,29 +624,29 @@ model.elirreg.negshockmajor.polity <- lm(v2elirreg.inv~reform_positive.lag +
                                              loggpdpc.lag + 
                                              #e_miurbani + 
                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag +  
-                                             log(e_mipopula) + factor(COWcode)
+                                             COW.factor
                                         , weights=cbps.out$weights,
                                         data = cbps.out$data) 
 #summary(model.elirreg.negshockmajor.polity)
 
-p.cbps.irreg.polity <- interplot(model.elirreg.negshockmajor.polity, var1="reform_positive.lag", var2="elcompindex.m.lag",
+p.cbps.irreg.elcomp <- interplot(model.elirreg.negshockmajor.polity, var1="reform_positive.lag", var2="elcompindex.m.lag",
                               hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Lagged adjusted Polity score", y="Marginal effect",
                                                              title="Marginal effect of positive judicial reform \non voting irregularities") +
   geom_hline(yintercept=0, linetype=2) 
 
 png("./Plots/cbps elcomp irreg.png", height=5,
     width=7, units="in", res=300)
-p.cbps.irreg.polity
+p.cbps.irreg.elcomp
 dev.off()
 ```
 
 Polcon
 
 ```{r cbps polcon}
-myvars <- c("COWcode", "v2elirreg.inv", "democracy.duration.2lag", "oppaut.2lag",  "h_polcon3.2lag", "h_polcon3.lag",  "v2elintmon", "v2elparlel_1", "v2elparlel_2", "reform_negative.lag", 
+myvars <- c("COW.factor", "v2elirreg.inv", "transitional", "democracy.duration.2lag", "oppaut.2lag",  "h_polcon3.2lag", "h_polcon3.lag",  "v2elintmon", "v2elparlel_1", "v2elparlel_2", "reform_negative.lag", 
             "loggpdpc.2lag", "urban.2lag",
             "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
-            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag", "v2eldommon", "e_mipopula")
+            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag")
 
 
 
@@ -653,7 +656,7 @@ dataset.matching.complete <- na.omit(dataset.matching)
 ###Finding scores/weights 
 
 cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
-                   education.2lag +
+                   education.2lag + transitional +
                    #e_van_comp.lag  + 
                    h_polcon3.2lag + #polcomp.lag + parcomp.lag +
                    loggpdpc.2lag + 
@@ -673,7 +676,7 @@ model.elirreg.negshockmajor.polity <- lm(v2elirreg.inv~reform_positive.lag +
                                              loggpdpc.lag + 
                                              #e_miurbani + 
                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag +  
-                                             log(e_mipopula) + factor(COWcode)
+                                          COW.factor
                                         , weights=cbps.out$weights,
                                         data = cbps.out$data) 
 #summary(model.elirreg.negshockmajor.polity)
@@ -692,10 +695,10 @@ dev.off()
 UDS
 
 ```{r cbps polity}
-myvars <- c("COWcode", "v2elirreg.inv", "democracy.duration.2lag", "oppaut.2lag",  "uds.mean.2lag", "uds.mean.lag", "v2elintmon", "v2elparlel_1", "v2elparlel_2", "reform_negative.lag",
+myvars <- c("COW.factor", "v2elirreg.inv", "democracy.duration.2lag", "oppaut.2lag",  "uds.mean.2lag", "uds.mean.lag", "v2elintmon", "v2elparlel_1", "v2elparlel_2", "reform_negative.lag",
             "loggpdpc.2lag", "urban.2lag",
             "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
-            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag", "v2eldommon", "e_mipopula")
+            "leg.constraints.2lag", "reform_positive.lag", "elexec", "loggpdpc.2lag", "loggpdpc.lag")
 
 
 
@@ -705,7 +708,7 @@ dataset.matching.complete <- na.omit(dataset.matching)
 ###Finding scores/weights 
 
 cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
-                   education.2lag +
+                   education.2lag + transitional +
                    #e_van_comp.lag  + 
                    uds.mean.2lag + #polcomp.lag + parcomp.lag +
                    loggpdpc.2lag + 
@@ -726,7 +729,7 @@ model.elirreg.negshockmajor.polity <- lm(v2elirreg.inv~reform_positive.lag +
                                              loggpdpc.lag + 
                                              #e_miurbani + 
                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag +  
-                                             log(e_mipopula) + factor(COWcode)
+                                           COW.factor
                                         , weights=cbps.out$weights,
                                         data = cbps.out$data) 
 #summary(model.elirreg.negshockmajor.polity)

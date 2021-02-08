@@ -1,0 +1,2522 @@
+---
+title: "Judicial independence and fraud appendix"
+output: html_notebook
+---
+
+```{r setup}
+library(tidyverse)
+library(lme4)
+library(lmtest)
+library(ggplot2)
+library(ggeffects)
+library(interplot)
+library(interplot.medline)
+library(interflex)
+library(stargazer)
+library(wfe)
+library(plm)
+library(ebal)
+library(cowplot)
+library(CBPS)
+library(sjPlot)
+library(fastDummies)
+
+
+
+vdem.nodems <- read.csv("./vdem-2018-no-dems-parcomp-post1945-oct2020-condensed-tidy.csv") #For broader sample
+#vdem.nodems <- vdem.nodems %>% group_by(COWcode) %>% mutate(govseat.frac.lag = lag(govseat.frac, 1))
+#vdem.nodems <- vdem.nodems %>% group_by(COWcode) %>% mutate(govseat.frac.2lag = lag(govseat.frac, 2))
+vdem.nodems.elections <- subset(vdem.nodems, is.na(vdem.nodems$v2elirreg.inv)==FALSE)
+
+###Coding presidential elections as majoritarian
+vdem.nodems.elections <- vdem.nodems.elections %>% mutate(v2elparlel = ifelse(elexec == 1, 0, v2elparlel))
+
+vdem.nodems.elections <- fastDummies::dummy_cols(vdem.nodems.elections, select_columns = "v2elparlel")
+
+vdem.nodems.elections$COW.factor <- factor(vdem.nodems.elections$COWcode)
+vdem.nodems.elections$year.factor <- factor(vdem.nodems.elections$year)
+
+vdem.nodems.elections <- vdem.nodems.elections %>% filter(parcomp.lag >= 0)
+vdem.nodems.elections <- vdem.nodems.elections %>% filter(is.na(reform_positive.lag) == F)
+
+##Lagged fraud
+vdem.nodems.elections <- vdem.nodems.elections %>% group_by(COWcode) %>% mutate(v2elirreg.inv.lag = dplyr::lag(v2elirreg.inv))
+```
+
+
+##Varying forms of de jure JI
+
+
+```{r}
+#Statement----
+model.elirreg.djstatement.elcomp <- lm(v2elirreg.inv ~ djji_ji.lag +
+                                          elcompindex.m.lag +
+                                      
+                             djji_ji.lag*elcompindex.m.lag +    elexec + v2elparlel_1 + v2elparlel_2 + 
+                                              # e_polity2 +
+                                              #e_miurbani + 
+                                              v2elintmon + 
+                                              reform_negative.lag + loggpdpc.lag +
+                                     COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djstatement.elcomp)
+
+p.djstatement.elcomp <- interplot(model.elirreg.djstatement.elcomp, var1="djji_ji.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djstatement.elcomp
+
+#Life term--
+model.elirreg.djterm.elcomp <- lm(v2elirreg.inv ~ djji_term.lag +
+                                          elcompindex.m.lag +
+                                      
+                             djji_term.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                             
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djterm.elcomp)
+
+p.djterm.elcomp <- interplot(model.elirreg.djterm.elcomp, var1="djji_term.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djterm.elcomp
+
+##Selection--
+model.elirreg.djsel.elcomp <- lm(v2elirreg.inv ~ djji_sel.lag +
+                                          elcompindex.m.lag +
+                                      
+                             djji_sel.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djsel.elcomp)
+
+p.djsel.elcomp <- interplot(model.elirreg.djsel.elcomp, var1="djji_sel.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djsel.elcomp
+
+##Removal conditions---
+model.elirreg.djrcon.elcomp <- lm(v2elirreg.inv ~ djji_rcon.lag +
+                                          elcompindex.m.lag +
+                                      
+                             djji_rcon.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djrcon.elcomp)
+
+p.djrcon.elcomp <- interplot(model.elirreg.djrcon.elcomp, var1="djji_rcon.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djrcon.elcomp
+
+##Removal procedure----
+model.elirreg.djrem.elcomp <- lm(v2elirreg.inv ~ djji_rem.lag +
+                                          elcompindex.m.lag +
+                                      
+                             djji_rem.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djrem.elcomp)
+
+p.djrem.elcomp <- interplot(model.elirreg.djrem.elcomp, var1="djji_rem.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djrem.elcomp
+
+##Salary----
+model.elirreg.djsal.elcomp <- lm(v2elirreg.inv ~ djji_sal.lag +
+                                          elcompindex.m.lag +
+                                      
+                             djji_sal.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djsal.elcomp)
+
+p.djsal.elcomp <- interplot(model.elirreg.djsal.elcomp, var1="djji_sal.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djsal.elcomp
+
+##Sel-removal index
+model.elirreg.djindex.elcomp <- lm(v2elirreg.inv ~ djji_int.lag +
+                                          elcompindex.m.lag +
+                                      
+                             djji_int.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djindex.elcomp)
+
+p.djindex.elcomp <- interplot(model.elirreg.djindex.elcomp, var1="djji_int.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djindex.elcomp
+```
+
+
+
+##Oversight
+
+```{r}
+#Statement----
+model.elirreg.djstatement.osight <- lm(v2elirreg.inv ~ djji_ji.lag +
+                                          opposition.oversight.lag +
+                                      
+                             djji_ji.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djstatement.osight)
+
+p.djstatement.osight <- interplot(model.elirreg.djstatement.osight, var1="djji_ji.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djstatement.osight
+
+#Life term--
+model.elirreg.djterm.osight <- lm(v2elirreg.inv ~ djji_term.lag +
+                                          opposition.oversight.lag +
+                                      
+                             djji_term.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djterm.osight)
+
+p.djterm.osight <- interplot(model.elirreg.djterm.osight, var1="djji_term.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djterm.osight
+
+##Selection--
+model.elirreg.djsel.osight <- lm(v2elirreg.inv ~ djji_sel.lag +
+                                          opposition.oversight.lag +
+                                      
+                             djji_sel.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djsel.osight)
+
+p.djsel.osight <- interplot(model.elirreg.djsel.osight, var1="djji_sel.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djsel.osight
+
+##Removal conditions---
+model.elirreg.djrcon.osight <- lm(v2elirreg.inv ~ djji_rcon.lag +
+                                          opposition.oversight.lag +
+                                      
+                             djji_rcon.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djrcon.osight)
+
+p.djrcon.osight <- interplot(model.elirreg.djrcon.osight, var1="djji_rcon.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djrcon.osight
+
+##Removal procedure----
+model.elirreg.djrem.osight <- lm(v2elirreg.inv ~ djji_rem.lag +
+                                          opposition.oversight.lag +
+                                      
+                             djji_rem.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djrem.osight)
+
+p.djrem.osight <- interplot(model.elirreg.djrem.osight, var1="djji_rem.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djrem.osight
+
+##Salary----
+model.elirreg.djsal.osight <- lm(v2elirreg.inv ~ djji_sal.lag +
+                                          opposition.oversight.lag +
+                                      
+                             djji_sal.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djsal.osight)
+
+p.djsal.osight <- interplot(model.elirreg.djsal.osight, var1="djji_sal.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djsal.osight
+
+##Sel-removal index
+model.elirreg.djindex.osight <- lm(v2elirreg.inv ~ djji_int.lag +
+                                          opposition.oversight.lag +
+                                      
+                             djji_int.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                    COW.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.djindex.osight)
+
+p.djindex.osight <- interplot(model.elirreg.djindex.osight, var1="djji_int.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.djindex.osight
+```
+
+
+##LJI and other measures of independence
+
+```{r}
+model.elirreg.lji.elcomp <- lm(v2elirreg.inv ~ lji.lag +
+                                          elcompindex.m.lag +
+                                      
+                             lji.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                    COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.lji.elcomp)
+
+p.lji.elcomp <- interplot(model.elirreg.lji.elcomp, var1="lji.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect", title="Latent judicial independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+
+```
+
+
+```{r}
+model.elirreg.lji.uds <- lm(v2elirreg.inv ~ lji.lag +
+                                          uds.mean.lag +
+                                      
+                             lji.lag*uds.mean.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                      COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+#summary(model.elirreg.lji.uds)
+
+p.lji.uds <- interplot(model.elirreg.lji.uds, var1="lji.lag", var2="uds.mean.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="UDS (lagged)", y="Marginal effect", title="Latent judicial independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.lji.uds
+
+```
+
+
+
+```{r LJI with opposition oversight}
+####LJI by opp oversight, no balancing because not a binary treatment
+mm.elirreg.lji.opp.base <- lm(v2elirreg.inv~lji.lag
+                                        + as.factor(v2elparlel) +
+                                          opposition.oversight.lag +
+                                      + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                             + v2elintmon + v2elparlel_1 + v2elparlel_2 + v2elparlel_3 + reform_negative.lag +
+                                              log(e_mipopula) +
+                                      COW.factor + year.factor
+                                ,
+                                data = vdem.nodems.elections)
+#summary(mm.elirreg.lji.opp.base)
+
+mm.elirreg.lji.opp <- lm(v2elirreg.inv~lji.lag +
+                                          opposition.oversight.lag +
+                                      
+                             lji.lag*opposition.oversight.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                     COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+#summary(mm.elirreg.lji.opp)
+p.lji.opp <- interplot(mm.elirreg.lji.opp, var1="lji.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Opposition oversight (lagged)", y="Marginal effect", title="Latent judicial independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+
+png("./Plots/lji x oppoversight.png", height=5,
+    width=7, units="in", res=300)
+p.lji.opp
+dev.off()
+```
+
+Polity
+
+```{r}
+model.elirreg.lji.polity <- lm(v2elirreg.inv ~ lji.lag +
+                                          polity2.adj.lag +
+                                      
+                             lji.lag*polity2.adj.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                      COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.lji.polity)
+
+p.lji.polity <- interplot(model.elirreg.lji.polity, var1="lji.lag", var2="polity2.adj.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Adjusted Polity score (lagged)", y="Marginal effect", title="Latent judicial independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.lji.polity
+```
+
+Polcon
+
+```{r}
+model.elirreg.lji.polcon <- lm(v2elirreg.inv ~ lji.lag +
+                                          h_polcon3.lag +
+                                      
+                             lji.lag*h_polcon3.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                      COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+#summary(model.elirreg.lji.polcon)
+
+p.lji.polcon <- interplot(model.elirreg.lji.polcon, var1="lji.lag", var2="h_polcon3.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Adjusted Polity score (lagged)", y="Marginal effect", title="Latent judicial independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.lji.polcon
+```
+
+
+```{r HC ind with opp oversight}
+mm.elirreg.hcind.opp <- lm(v2elirreg.inv~hc.ind.lag +
+                             opposition.oversight.lag + as.factor(v2elparlel) + hc.ind.lag*opposition.oversight.lag   + elexec +
+                             #e_peaveduc+ 
+                             #e_polity2 +
+                             loggpdpc.lag + 
+                            # e_miurbani + 
+                             v2eldommon + 
+                             log(e_mipopula) +
+                       #    + transitional
+                           
+                           COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+#summary(mm.elirreg.hcind.opp)
+p.hc.opp <- interplot(mm.elirreg.hcind.opp, var1="hc.ind.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Opposition oversight (lagged)", y="Marginal effect", title="High-court independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+
+png("./Plots/hcind x oppoversight.png", height=5,
+    width=7, units="in", res=300)
+p.hc.opp
+dev.off()
+
+```
+
+
+```{r low-court and polity}
+model.elirreg.lc.polity <- lm(v2elirreg.inv ~ lc.ind.lag +
+                                          polity2.adj.lag +
+                                      
+                             lc.ind.lag*polity2.adj.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                       COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.lc.polity)
+
+p.lc.polity <- interplot(model.elirreg.lc.polity, var1="lc.ind.lag", var2="polity2.adj.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Adjusted Polity score (lagged)", y="Marginal effect", title="Lower-court independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.lc.polity
+
+
+```
+
+
+Elcomp
+
+```{r low-court and elcomp}
+model.elirreg.lc.elcomp <- lm(v2elirreg.inv ~ lc.ind.lag +
+                                          elcompindex.m.lag +
+                                      
+                             lc.ind.lag*elcompindex.m.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                      COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.lc.elcomp)
+
+p.lc.elcomp <- interplot(model.elirreg.lc.elcomp, var1="lc.ind.lag", var2="elcompindex.m.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Electoral competition (lagged)", y="Marginal effect", title="Lower-court independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.lc.elcomp
+
+
+```
+
+UDS
+
+```{r low-court and uds}
+model.elirreg.lc.uds <- lm(v2elirreg.inv ~ lc.ind.lag +
+                                          uds.mean.lag +
+                                      
+                             lc.ind.lag*uds.mean.lag + elexec + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                                              log(e_mipopula) +
+                                   COW.factor + year.factor,
+                           data = vdem.nodems.elections)
+summary(model.elirreg.lc.uds)
+
+p.lc.uds <- interplot(model.elirreg.lc.uds, var1="lc.ind.lag", var2="uds.mean.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="UDS (lagged)", y="Marginal effect", title="Lower-court independence") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+p.lc.uds
+
+
+```
+
+```{r}
+mm.elirreg.jucon.opp <- lm(v2elirreg.inv~jucon.lag +
+                               opposition.oversight.lag + jucon.lag*opposition.oversight.lag   + elexec +  + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag + 
+                               #e_peaveduc+ 
+                               #e_polity2 +
+                               loggpdpc.lag + 
+                               #e_miurbani + 
+                               log(e_mipopula) 
+                             #+ transitional
+                             
+                             + factor(COWcode),
+                             data = vdem.nodems.elections)
+#summary(mm.elirreg.jucon.opp)
+p.jucon.opp <- interplot(mm.elirreg.jucon.opp, var1="jucon.lag", var2="opposition.oversight.lag", hist=TRUE, adjCI = TRUE) +
+  labs(x="Opposition oversight (lagged)", y="Marginal effect", title="Judicial constraints on the \nexecutive") + 
+  theme_bw() + geom_hline(yintercept=0, linetype=2)
+
+png("./Plots/jucon x oppoversight.png", height=5,
+    width=7, units="in", res=300)
+p.jucon.opp
+dev.off()
+```
+
+
+```{r table and plot}
+stargazer(mm.elirreg.lji.opp, mm.elirreg.jucon.opp, type="html", 
+          out="./Drafts/table alternative measures by oversight.html",
+          omit = c("COW.factor", "COWcode", "year.factor", "year"))
+
+p.combined.jimeasures <- plot_grid(p.lji.opp, p.jucon.opp, align = "h", nrow = 1, label_size = 12, hjust = 0)
+
+
+png("./Plots/alternative ji oppoversight appendix.png", height=5,
+    width=7, units="in", res=300)
+p.combined.jimeasures
+dev.off()
+```
+
+##Intimidation and vote-buying as DVs, using opposition oversight
+
+Elcomp
+
+```{r entropy balancing for oversight}
+### Legislative opposition oversight
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elvotbuy.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag",
+  "v2elparlel_3",
+             "elcompindex.m.lag", "elcompindex.m.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag", "purge.lag", "pack.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")   # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "elcompindex.m.2lag", "lji.2lag",
+            "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...28)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...28)
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+```
+
+
+```{r vote-buying and oversight}
+elvb.posreform.elcomp.base <- lm(v2elvotbuy.inv~reform_positive.lag +
+                                               elcompindex.m.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2elintmon + 
+                                            v2elparlel_1 + v2elparlel_2 +  reform_negative.lag + purge.lag + pack.lag +
+                                         COW.factor
+                                             #+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elvb.posreform.oversight.base)
+
+
+elvb.posreform.elcomp.int <- lm(v2elvotbuy.inv~reform_positive.lag +
+                                             elcompindex.m.lag + reform_positive.lag*elcompindex.m.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                              v2elintmon + 
+                                              v2elparlel_1 + v2elparlel_2   + reform_negative.lag + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor, 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elintim.posreform.oversight)
+p.vb.elcomp <- interplot(elvb.posreform.elcomp.int, var1="reform_positive.lag", var2="elcompindex.m.lag",
+                      hist=TRUE) + theme_bw() + labs(x="Political openness (1-year lag)", y="Marginal effect" , 
+                                                     title="Marginal effect of positive reform \non vote-buying") +
+  geom_hline(yintercept=0, linetype=2)  #Same as above
+
+png("./Plots/ebal elcomp vb.png", height=5,
+    width=7, units="in", res=300)
+p.vb.elcomp  
+dev.off()
+
+lrtest(elvb.posreform.oversight.base, elvb.posreform.oversight.int)
+
+```
+
+
+```{r intimidation and oversight}
+elintim.posreform.elcomp.base <- lm(v2elintim.inv~reform_positive.lag +
+                                               elcompindex.m.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2elintmon + 
+                                            v2elparlel_1 + v2elparlel_2 +  reform_negative.lag + purge.lag + pack.lag +
+                                         COW.factor
+                                             #+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elintim.posreform.oversight.base)
+
+
+elintim.posreform.elcomp.int <- lm(v2elintim.inv~reform_positive.lag +
+                                             elcompindex.m.lag + reform_positive.lag*elcompindex.m.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                              v2elintmon + purge.lag + pack.lag +
+                                              v2elparlel_1 + v2elparlel_2   + reform_negative.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor, 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elintim.posreform.oversight)
+p.intim.elcomp <- interplot(elintim.posreform.elcomp.int, var1="reform_positive.lag", var2="elcompindex.m.lag",
+                      hist=TRUE) + theme_bw() + labs(x="Political openness (1-year lag)", y="Marginal effect" , 
+                                                     title="Marginal effect of positive reform \non intimidation") +
+  geom_hline(yintercept=0, linetype=2)  #Same as above
+
+png("./Plots/ebal elcomp intim.png", height=5,
+    width=7, units="in", res=300)
+p.intim.elcomp  
+dev.off()
+
+lrtest(elintim.posreform.oversight.base, elintim.posreform.oversight.int)
+
+```
+
+
+Legislative oversight
+
+```{r entropy balancing for oversight}
+### Legislative opposition oversight
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elvotbuy.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag",
+  "v2elparlel_3",
+            "opposition.oversight.lag", "opp.oversight.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag", "purge.lag", "pack.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")   # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "opp.oversight.2lag", "lji.2lag",
+            "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...28)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...28)
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+```
+
+
+```{r vote-buying and oversight}
+elvb.posreform.oversight.base <- lm(v2elvotbuy.inv~reform_positive.lag +
+                                               opposition.oversight.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2elintmon + 
+                                            v2elparlel_1 + v2elparlel_2 +  reform_negative.lag + purge.lag + pack.lag +
+                                         COW.factor
+                                             #+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elvb.posreform.oversight.base)
+
+
+elvb.posreform.oversight.int <- lm(v2elvotbuy.inv~reform_positive.lag +
+                                             opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                              v2elintmon + 
+                                              v2elparlel_1 + v2elparlel_2   + reform_negative.lag + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor, 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elintim.posreform.oversight)
+p.vb.osight <- interplot(elvb.posreform.oversight.int, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                      hist=TRUE) + theme_bw() + labs(x="Opposition oversight (1-year lag)", y="Marginal effect" , 
+                                                     title="Marginal effect of positive reform \non vote-buying") +
+  geom_hline(yintercept=0, linetype=2)  #Same as above
+
+png("./Plots/ebal oversight vb.png", height=5,
+    width=7, units="in", res=300)
+p.vb.osight  
+dev.off()
+
+lrtest(elvb.posreform.oversight.base, elvb.posreform.oversight.int)
+
+```
+
+
+```{r intimidation and oversight}
+elintim.posreform.oversight.base <- lm(v2elintim.inv~reform_positive.lag +
+                                               opposition.oversight.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2elintmon + 
+                                            v2elparlel_1 + v2elparlel_2 +  reform_negative.lag + purge.lag + pack.lag +
+                                         COW.factor
+                                             #+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elintim.posreform.oversight.base)
+
+
+elintim.posreform.oversight.int <- lm(v2elintim.inv~reform_positive.lag +
+                                             opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                              v2elintmon + 
+                                              v2elparlel_1 + v2elparlel_2   + reform_negative.lag + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor, 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elintim.posreform.oversight)
+p.intim.osight <- interplot(elintim.posreform.oversight.int, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                      hist=TRUE) + theme_bw() + labs(x="Opposition oversight (1-year lag)", y="Marginal effect" , 
+                                                     title="Marginal effect of positive reform \non intimidation") +
+  geom_hline(yintercept=0, linetype=2)  #Same as above
+
+png("./Plots/ebal oversight intim.png", height=5,
+    width=7, units="in", res=300)
+p.intim.osight  
+dev.off()
+
+lrtest(elintim.posreform.oversight.base, elintim.posreform.oversight.int)
+
+```
+
+```{r table alternative DVs}
+stargazer(elvb.posreform.elcomp.int, elvb.posreform.oversight.int, elintim.posreform.elcomp.int, elintim.posreform.oversight.int,
+          type="html", out="./Drafts/ebal results intim and vb.html",
+          omit = c("COW.factor"))
+
+```
+
+```{r plot for intim and vb}
+p.combined.vbintim <- cowplot::plot_grid(p.intim.elcomp, p.vb.elcomp, p.intim.osight, p.vb.osight,
+                                align = "h", nrow = 2, label_size = 12, hjust = 0)
+
+
+png("./Plots/alternative DVs oppoversight appendix.png", height=5,
+    width=7, units="in", res=300)
+p.combined.vbintim
+dev.off()
+```
+
+
+
+###CBPS method
+```{r cbps for oversight}
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elvotbuy.inv", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag",
+  "v2elparlel_3",
+            "opposition.oversight.lag", "opp.oversight.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag", "purge.lag", "pack.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
+                   education.2lag +
+                   #e_van_comp.lag  + 
+                   opp.oversight.2lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.2lag + 
+                   urban.2lag +
+                   + hc.ind.2lag + lji.2lag
+                 +  lc.ind.2lag
+                 + exec.respectcon.2lag  +  altinfo.2lag + 
+                   + leg.constraints.2lag, data=dataset.matching.complete)
+summary(cbps.out)
+oversight.bal <- balance(cbps.out)
+
+stargazer(oversight.bal, 
+          type="html", 
+          out="./Drafts/cbps balance oversight model irreg.html",
+          omit = c("COWcode"))
+
+
+model.elirreg.negshockmajor.oppover <-  
+        lm(v2elirreg.inv~reform_positive.lag +
+         opposition.oversight.lag +
+         reform_positive.lag*opposition.oversight.lag   + elexec + 
+                                              # e_polity2 +
+                                              loggpdpc.lag  
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag  + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor
+                                            , weights=cbps.out$weights,
+                                            data = cbps.out$data) 
+#summary(model.elirreg.negshockmajor.oppover)
+p.cbps.irreg.oppover <- interplot(model.elirreg.negshockmajor.oppover, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                                  hist=TRUE, adjCI = T) + theme_bw() + labs(x="Opposition oversight (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)    #Negative sig
+
+png("./Plots/cbps oversight irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.oppover
+dev.off()
+
+```
+
+```{r cbps polity}
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elvotbuy.inv", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag",
+  "v2elparlel_3",
+            "polity2.adj.lag", "polity2.adj.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag", "purge.lag", "pack.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")
+
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+###Finding scores/weights 
+
+cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
+                   education.2lag +
+                   #e_van_comp.lag  + 
+                   polity2.adj.2lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.2lag + 
+                   urban.2lag +
+                   + hc.ind.2lag + lji.2lag
+                 +  lc.ind.2lag
+                 + exec.respectcon.2lag  +  altinfo.2lag + 
+                   + leg.constraints.2lag, data=dataset.matching.complete)
+summary(cbps.out)
+balance(cbps.out)
+
+###Output models
+
+model.elirreg.negshockmajor.polity <- lm(v2elirreg.inv~reform_positive.lag +
+         polity2.adj.lag +
+         reform_positive.lag*polity2.adj.lag   + elexec + 
+                                              # e_polity2 +
+                                              loggpdpc.lag  
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag  + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor
+                                        , weights=cbps.out$weights,
+                                        data = cbps.out$data) 
+#summary(model.elirreg.negshockmajor.polity)
+
+p.cbps.irreg.polity <- interplot(model.elirreg.negshockmajor.polity, var1="reform_positive.lag", var2="polity2.adj.lag",
+                              hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Lagged adjusted Polity score", y="Marginal effect",
+                                                             title="Marginal effect of positive judicial reform \non voting irregularities") +
+  geom_hline(yintercept=0, linetype=2) 
+
+png("./Plots/cbps polity irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.polity
+dev.off()
+```
+
+Elcomp
+```{r cbps elcomp}
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elvotbuy.inv", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag",
+  "v2elparlel_3",
+            "elcompindex.m.2lag", "elcompindex.m.lag",  "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag", "purge.lag", "pack.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")
+
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+###Finding scores/weights 
+
+cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
+                   education.2lag +
+                   #e_van_comp.lag  + 
+                   elcompindex.m.2lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.2lag + 
+                   urban.2lag +
+                   + hc.ind.2lag 
+                 +  lc.ind.2lag + lji.2lag
+                 + exec.respectcon.2lag  +  altinfo.2lag + 
+                   + leg.constraints.2lag, data=dataset.matching.complete)
+summary(cbps.out)
+balance(cbps.out)
+
+###Output models
+
+
+model.elirreg.negshockmajor.elcomp <- lm(v2elirreg.inv~reform_positive.lag +
+         elcompindex.m.lag +
+         reform_positive.lag*elcompindex.m.lag   + elexec + 
+                                              # e_polity2 +
+                                              loggpdpc.lag  
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag  + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor
+                                        , weights=cbps.out$weights,
+                                        data = cbps.out$data) 
+#summary(model.elirreg.negshockmajor.polity)
+
+p.cbps.irreg.elcomp <- interplot(model.elirreg.negshockmajor.elcomp, var1="reform_positive.lag", var2="elcompindex.m.lag",
+                              hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political openness (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+png("./Plots/cbps elcomp irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.elcomp
+dev.off()
+```
+
+Polcon
+
+```{r cbps polcon}
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elvotbuy.inv", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag",
+  "v2elparlel_3",
+            "h_polcon3.lag", "h_polcon3.2lag",  "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag", "purge.lag", "pack.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")
+
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+###Finding scores/weights 
+
+cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
+                   education.2lag +
+                   #e_van_comp.lag  + 
+                   h_polcon3.2lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.2lag + 
+                   urban.2lag +
+                   + hc.ind.2lag 
+                 +  lc.ind.2lag + lji.2lag
+                 + exec.respectcon.2lag  +  altinfo.2lag + 
+                   + leg.constraints.2lag, data=dataset.matching.complete)
+summary(cbps.out)
+balance(cbps.out)
+
+###Output models
+
+model.elirreg.negshockmajor.polcon <- lm(v2elirreg.inv~reform_positive.lag +
+         h_polcon3.lag +
+         reform_positive.lag*h_polcon3.lag   + elexec + 
+                                              # e_polity2 +
+                                              loggpdpc.lag  
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag  + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor
+                                        , weights=cbps.out$weights,
+                                        data = cbps.out$data) 
+#summary(model.elirreg.negshockmajor.polity)
+
+p.cbps.irreg.polcon <- interplot(model.elirreg.negshockmajor.polcon, var1="reform_positive.lag", var2="h_polcon3.lag",
+                              hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political constraints (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+png("./Plots/cbps polcon irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.polcon
+dev.off()
+```
+
+UDS
+
+```{r cbps polity}
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elvotbuy.inv", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag",
+  "v2elparlel_3",
+            "uds.mean.lag", "uds.mean.2lag",  "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag", "purge.lag", "pack.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")
+
+
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+###Finding scores/weights 
+
+cbps.out <- CBPS(reform_positive.lag~ democracy.duration.2lag + oppaut.2lag +
+                   education.2lag +
+                   #e_van_comp.lag  + 
+                   uds.mean.2lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.2lag + 
+                   urban.2lag +
+                   + hc.ind.2lag + lji.2lag
+                 +  lc.ind.2lag
+                 + exec.respectcon.2lag  +  altinfo.2lag + 
+                   + leg.constraints.2lag, data=dataset.matching.complete)
+summary(cbps.out)
+balance(cbps.out)
+
+###Output models
+
+
+model.elirreg.negshockmajor.uds <-lm(v2elirreg.inv~reform_positive.lag +
+         uds.mean.lag +
+         reform_positive.lag*uds.mean.lag   + elexec + 
+                                              # e_polity2 +
+                                              loggpdpc.lag  
+                                              #e_miurbani + 
+                                               + v2elintmon + v2elparlel_1 + v2elparlel_2  + reform_negative.lag  + purge.lag + pack.lag +
+ #+ transitional + altinfo.lag 
+                                      COW.factor
+                                        , weights=cbps.out$weights,
+                                        data = cbps.out$data) 
+#summary(model.elirreg.negshockmajor.polity)
+
+p.cbps.irreg.uds <- interplot(model.elirreg.negshockmajor.uds, var1="reform_positive.lag", var2="uds.mean.lag",
+                              hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Lagged UDS", y="Marginal effect",
+                                                             title="Marginal effect of positive judicial reform \non voting irregularities") +
+  geom_hline(yintercept=0, linetype=2) 
+
+png("./Plots/cbps polcon irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cbps.irreg.uds
+dev.off()
+```
+
+
+```{r CBPS table}
+stargazer(model.elirreg.negshockmajor.elcomp, model.elirreg.negshockmajor.oppover, 
+          model.elirreg.negshockmajor.polcon,
+          type="html", 
+          out="./Drafts/cbps outcome models irreg.html",
+          omit = c("COW.factor"))
+```
+
+```{r cbps combined plot}
+p.combined.cbps <- cowplot::plot_grid(p.cbps.irreg.elcomp, p.cbps.irreg.oppover, p.cbps.irreg.polcon,  align = "h", nrow = 2, label_size = 12, hjust = 0)
+
+
+png("./Plots/CBPS plot combined appendix.png", height=5,
+    width=7, units="in", res=300)
+p.combined.cbps
+dev.off()
+```
+
+##Including government party seat share in selection models
+
+```{r ebal with govseat}
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "lji.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2",                         "elcompindex.m.lag", "elcompindex.m.2lag",
+             "urban.2lag",  "v2elintmon", "pack.lag", "purge.lag",
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag", "govseat.frac.lag") 
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "elcompindex.m.2lag",
+            "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag", "govseat.frac.lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+stargazer(cbind(t.means, c.means.bal, c.means), type="text")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+
+  
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.polity.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        elcompindex.m.lag  + elexec +  v2elparlel_1 + v2elparlel_2  +
+                                            #e_polity2 +
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                           reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                      COW.factor,  
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+summary(elirreg.posreform.polity.base)
+
+
+mm.elirreg.posreform.polity.all <- lm(v2elirreg.inv~reform_positive.lag*elcompindex.m.lag  + elexec +  v2elparlel_1 + v2elparlel_2  +
+                                            #e_polity2 +
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                           reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                      COW.factor, 
+                                      weights=ebal.test.w,
+                                      data = dataset.matching.complete.w)
+summary(mm.elirreg.posreform.polity.all)
+
+lrtest(elirreg.posreform.polity.base, mm.elirreg.posreform.polity.all)
+
+
+
+
+p3.app.elcomp <- interplot(mm.elirreg.posreform.polity.all, var1="reform_positive.lag", var2="elcompindex.m.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political openness (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   #No effect for fraud
+p3.app.elcomp
+
+
+p3.bin.app <- inter.binning(data=dataset.matching.complete.w, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag",
+                        Z = c("elexec", "loggpdpc.lag", "v2eldommon", "e_mipopula"), weights = "ebal.test.w", na.rm=TRUE, FE = c("COWcode"), ylab = "Marginal effect", xlab = "Adjusted Polity score (lag)", theme.bw = T, cex.lab = .75, cex.axis = .75, bin.labs = F)
+
+p3.bin.image <- p3.bin$graph + geom_hline(yintercept = 0, linetype=2)
+
+inter.kernel(data=dataset.matching.complete.w, Y = "v2elirreg.inv", D = "reform_positive.lag", X = "polity2.adj.lag",
+             Z = c("v2elparlel", "elexec", "loggpdpc.lag", "v2eldommon", "e_mipopula"), weights = "ebal.test.w", na.rm=TRUE, FE = c("COWcode"))
+
+
+
+
+
+
+
+
+
+### Legislative opposition oversight
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "lji.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2",                         "opposition.oversight.lag", "opp.oversight.2lag",
+             "urban.2lag",  "v2elintmon", "pack.lag", "purge.lag",
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag", "govseat.frac.lag") 
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "opp.oversight.2lag",
+            "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag", "govseat.frac.lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+stargazer(cbind(t.means, c.means.bal, c.means), type="text") 
+ #         out="./Drafts/ebal adjusted means full data.html")
+
+###regression
+elirreg.posreform.oversight.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        opposition.oversight.lag  + elexec +  v2elparlel_1 + v2elparlel_2  +
+                                            #e_polity2 +
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                           reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                      COW.factor,  
+                                       #+ transitional + altinfo.lag
+                                        weights=ebal.test.w,
+                                       data = dataset.matching.complete.w)
+#summary(elirreg.posreform.oversight.base)
+
+
+mm.elirreg.posreform.oversight <- lm(v2elirreg.inv~reform_positive.lag*opposition.oversight.lag  + elexec +  v2elparlel_1 + v2elparlel_2  +
+                                            #e_polity2 +
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                           reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                      COW.factor,  
+                                     weights=ebal.test.w,
+                                     data = dataset.matching.complete.w)
+summary(mm.elirreg.posreform.oversight)
+
+p3.app.osight <- interplot(mm.elirreg.posreform.oversight, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Opposition oversight (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   #No effect for fraud
+p3.app.osight
+
+```
+
+Printing the table
+
+```{r}
+stargazer(mm.elirreg.posreform.polity.all,
+          mm.elirreg.posreform.oversight,
+          digits = 2, omit = c("COW.factor", "COWcode"),
+          type="html", out="./Drafts/appendix results irreg w seatshare.html")
+```
+
+```{r cbps combined seat share}
+p.combined.ss <- cowplot::plot_grid(p3.app.elcomp, p3.app.osight, align = "h", nrow = 1, label_size = 12, hjust = 0)
+
+
+png("./Plots/ebal plot combined seatshare appendix.png", height=5,
+    width=7, units="in", res=300)
+p.combined.ss
+dev.off()
+```
+
+```{r}
+interplot(mm.elirreg.posreform.oversight, var1 = "reform_positive.lag", var2= "opposition.oversight.lag")
+```
+
+##Selection logits
+
+```{r}
+m.selection1 <- glm(reform_positive.lag ~ democracy.duration.2lag + oppaut.2lag +
+                   education.2lag +
+                   #e_van_comp.lag  + 
+                   opp.oversight.2lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.2lag + 
+                   urban.2lag +
+                   + hc.ind.2lag + lji.2lag
+                 +  lc.ind.2lag
+                 + exec.respectcon.2lag  +  altinfo.2lag + 
+                   + leg.constraints.2lag + transitional, 
+            data = vdem.nodems.elections,
+            family=binomial(link="logit"))
+summary(m.selection1)
+
+m.selection2 <- glm(reform_positive.lag ~ democracy.duration.2lag + oppaut.2lag +
+                   education.2lag +
+                   #e_van_comp.lag  + 
+                   opp.oversight.2lag + #polcomp.lag + parcomp.lag +
+                   loggpdpc.2lag + 
+                   urban.2lag +
+                   + hc.ind.2lag + lji.2lag
+                 +  lc.ind.2lag
+                 + exec.respectcon.2lag  +  altinfo.2lag + 
+                   + leg.constraints.2lag + transitional + govseat.frac.lag, 
+            data = vdem.nodems.elections,
+            family=binomial(link="logit"))
+summary(m.selection2)
+
+stargazer(m.selection1, m.selection2, digits = 2, 
+          type="html", out="./Drafts/appendix selection models.html")
+```
+
+###Recreating main analysis excluding electoral democracies (Polity <= 5)
+
+
+```{r 2wfe with controls, include=F}
+vdem.nodems.narrow.elections <- vdem.nodems.elections %>% filter(e_polity2 <= 5)
+
+
+vdem.nodems.narrow.elections$COW.factor <- factor(vdem.nodems.narrow.elections$COWcode)
+vdem.nodems.narrow.elections$year.factor <- factor(vdem.nodems.narrow.elections$year)
+
+
+
+model.2wfe.app <- lm(v2elirreg.inv ~ COW.factor + year.factor +
+                   reform_positive.lag + 
+                   polity2.adj.lag + reform_positive.lag*polity2.adj.lag +
+                   elexec + v2eldommon + as.factor(v2elparlel)
+                   , data = vdem.nodems.narrow.elections)
+#summary(model.2wfe.app)
+
+model.2wfe.legov.c.app <- lm(v2elirreg.inv ~ COW.factor + year.factor + reform_positive.lag + 
+                                 opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag +
+                   elexec + v2eldommon + as.factor(v2elparlel), data = vdem.nodems.narrow.elections)
+
+#summary(model.2wfe.legov.c.app)
+```
+
+```{r}
+p1.narrow <- interplot(model.2wfe.app, var1="reform_positive.lag", var2="polity2.adj.lag",
+                      hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Adjusted Polity score (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+
+p2.narrow <- interplot(model.2wfe.legov.c.app, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                      hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Opposition oversight (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+
+```
+
+
+```{r ebal 1}
+myvars <- c("COWcode", "year", "transitional",    "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel",
+            "polity2.adj.lag", "polity2.adj.2lag", "urban.2lag",  "v2eldommon", "e_mipopula", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.narrow.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "polity2.adj.2lag",
+             "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+stargazer(cbind(t.means, c.means.bal, c.means), type="text")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...25)
+dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...25)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.polity.base.app <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        polity2.adj.lag  + elexec +  as.factor(v2elparlel) +
+                                            #e_polity2 +
+                                        loggpdpc.lag + 
+                                            #e_miurbani + 
+                                            v2eldommon +  
+                                            log(e_mipopula) +
+                                      factor(COWcode), 
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+#summary(elirreg.posreform.polity.base.app)
+
+
+mm.elirreg.posreform.polity.all.app <- lm(v2elirreg.inv~reform_positive.lag
+                                        + 
+                                          polity2.adj.lag +
+                                      reform_positive.lag*polity2.adj.lag
+                                      + elexec + as.factor(v2elparlel) +
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                              v2eldommon + 
+                                              log(e_mipopula) +
+                                      factor(COWcode),  
+                                            weights=ebal.test.w,
+                                            data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.polity.all.app)
+```
+
+
+```{r include=FALSE ebal2}
+### Legislative opposition oversight
+myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
+            "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  
+            "opposition.oversight.lag", "opp.oversight.2lag", "urban.2lag", "v2elmulpar", "v2eldommon", "e_mipopula", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag", "years.since.election", "v2elparlel")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.narrow.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "opp.oversight.2lag",
+            "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...27)
+dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...27)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+
+###regression
+elirreg.posreform.oversight.base.app <- lm(v2elirreg.inv~reform_positive.lag +
+                                               opposition.oversight.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2eldommon + 
+                                               log(e_mipopula)  + as.factor(v2elparlel) + 
+                                      factor(COWcode)
+                                             #+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elirreg.posreform.oversight.base.app)
+
+
+mm.elirreg.posreform.oversight.app <- lm(v2elirreg.inv~reform_positive.lag +
+                                             opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                             v2eldommon + 
+                                             log(e_mipopula) #+ transitional + altinfo.lag 
+                                          + as.factor(v2elparlel) +
+                                      factor(COWcode), 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.oversight.app)
+
+```
+
+```{r}
+p3.narrow <- interplot(mm.elirreg.posreform.polity.all.app, var1="reform_positive.lag", var2="polity2.adj.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Adjusted Polity score (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   #No effect for fraud
+
+p4.narrow <- interplot(mm.elirreg.posreform.oversight.app, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Opposition oversight (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   
+
+```
+
+
+```{r table for baseline models with no electoral dems}
+stargazer(model.2wfe.app, mm.elirreg.posreform.polity.all.app, model.2wfe.legov.c.app,
+          mm.elirreg.posreform.oversight.app,
+          digits = 2, omit = c("COW.factor", "COWcode", "year.factor", "year"),
+          type="html", out="./Drafts/appendix main results irreg authoritarian only.html")
+
+```
+
+###Including more democratic cases
+
+```{r}
+vdem.withdems <- read.csv("vdem-2018-with-dems-post1945-polity-july2020-condensed-tidy.csv")
+vdem.withdems.elections <- subset(vdem.withdems, is.na(vdem.withdems$v2elirreg.inv)==FALSE)
+
+```
+
+```{r 2wfe with controls withdems, include=F}
+
+
+vdem.withdems.elections$COW.factor <- factor(vdem.withdems.elections$COWcode)
+vdem.withdems.elections$year.factor <- factor(vdem.withdems.elections$year)
+
+
+
+model.2wfe.app.dems <- lm(v2elirreg.inv ~ COW.factor + year.factor +
+                   reform_positive.lag + 
+                   polity2.adj.lag + reform_positive.lag*polity2.adj.lag +
+                   elexec + v2eldommon + as.factor(v2elparlel)
+                   , data = vdem.withdems.elections)
+#summary(model.2wfe.app.dems)
+
+model.2wfe.legov.c.app.dems <- lm(v2elirreg.inv ~ COW.factor + year.factor + reform_positive.lag + 
+                                 opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag +
+                   elexec + v2eldommon + as.factor(v2elparlel), data = vdem.withdems.elections)
+
+#summary(model.2wfe.legov.c.app)
+```
+
+
+
+```{r}
+p1.dems <- interplot(model.2wfe.app.dems, var1="reform_positive.lag", var2="polity2.adj.lag",
+                      hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Adjusted Polity score (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+
+p2.dems <- interplot(model.2wfe.legov.c.app.dems, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                      hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Opposition oversight (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+
+```
+
+
+```{r ebal 1 dems}
+myvars <- c("COWcode", "year", "transitional",    "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel",
+            "polity2.adj.lag", "polity2.adj.2lag", "urban.2lag",  "v2eldommon", "e_mipopula", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.withdems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "polity2.adj.2lag",
+             "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+stargazer(cbind(t.means, c.means.bal, c.means), type="text")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...25)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...25)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.polity.base.app.dems <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        polity2.adj.lag  + elexec +  as.factor(v2elparlel) +
+                                            #e_polity2 +
+                                        loggpdpc.lag + 
+                                            #e_miurbani + 
+                                            v2eldommon +  
+                                            log(e_mipopula) +
+                                      factor(COWcode), 
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+#summary(elirreg.posreform.polity.base.app)
+
+
+mm.elirreg.posreform.polity.all.app.dems <- lm(v2elirreg.inv~reform_positive.lag
+                                        + 
+                                          polity2.adj.lag +
+                                      reform_positive.lag*polity2.adj.lag
+                                      + elexec + as.factor(v2elparlel) +
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                              v2eldommon + 
+                                              log(e_mipopula) +
+                                      factor(COWcode),  
+                                            weights=ebal.test.w,
+                                            data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.polity.all.app)
+```
+
+
+
+
+```{r include=FALSE ebal2 dems}
+### Legislative opposition oversight
+myvars <- c("COWcode", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
+            "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  
+            "opposition.oversight.lag", "opp.oversight.2lag", "urban.2lag", "v2elmulpar", "v2eldommon", "e_mipopula", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag", "years.since.election", "v2elparlel")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.withdems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "opp.oversight.2lag",
+            "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...27)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...27)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+
+###regression
+elirreg.posreform.oversight.base.app.dems <- lm(v2elirreg.inv~reform_positive.lag +
+                                               opposition.oversight.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2eldommon + 
+                                               log(e_mipopula)  + as.factor(v2elparlel) + 
+                                      factor(COWcode)
+                                             #+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elirreg.posreform.oversight.base.app.dems)
+
+
+mm.elirreg.posreform.oversight.app.dems <- lm(v2elirreg.inv~reform_positive.lag +
+                                             opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                             v2eldommon + 
+                                             log(e_mipopula) #+ transitional + altinfo.lag 
+                                          + as.factor(v2elparlel) +
+                                      factor(COWcode), 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.oversight.app.dems)
+
+```
+
+
+```{r table for baseline models with more liberal dems}
+stargazer(model.2wfe.app.dems, mm.elirreg.posreform.polity.all.app.dems, model.2wfe.legov.c.app.dems,
+          mm.elirreg.posreform.oversight.app.dems,
+          digits = 2, omit = c("COW.factor", "COWcode", "year.factor", "year"),
+          type="html", out="./Drafts/appendix main results irreg with dems.html")
+
+```
+
+Consider including v2x_clpol as another measure of competitiveness in the appendix
+Also consider renaming adjusted polity score to better capture the remaining aspects of Polity captured by the variable
+
+###Using political civil liberties
+
+```{r}
+vdem.nodems.elections$COW.factor <- factor(vdem.nodems.elections$COWcode)
+vdem.nodems.elections$year.factor <- factor(vdem.nodems.elections$year)
+
+model.2wfe.cl <- lm(v2elirreg.inv ~ COW.factor + year.factor +
+                   reform_positive.lag + 
+                   clpol.lag + reform_positive.lag*clpol.lag +
+                   elexec + v2eldommon + as.factor(v2elparlel)
+                   , data = vdem.nodems.elections)
+```
+
+```{r ebal polity, include=FALSE}
+myvars <- c("COWcode", "year", "transitional",    "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel",
+            "clpol.lag", "clpol.2lag", "urban.2lag",  "v2eldommon", "e_mipopula", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "clpol.2lag",
+             "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+#stargazer(cbind(t.means, c.means.bal, c.means), type="html", 
+#          out="./Drafts/ebal adjusted means full data.html")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...25)
+dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...25)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.cl.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        clpol.lag  + elexec +  as.factor(v2elparlel) +
+                                            #e_polity2 +
+                                        loggpdpc.lag + 
+                                            #e_miurbani + 
+                                            v2eldommon +  
+                                            log(e_mipopula) +
+                                      factor(COWcode), 
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+#summary(elirreg.posreform.cl.base)
+
+
+mm.elirreg.posreform.cl.all <- lm(v2elirreg.inv~reform_positive.lag
+                                        + 
+                                          clpol.lag +
+                                      reform_positive.lag*clpol.lag
+                                      + elexec + as.factor(v2elparlel) +
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                              v2eldommon + 
+                                              log(e_mipopula) +
+                                      factor(COWcode),  
+                                            weights=ebal.test.w,
+                                            data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.cl.all)
+
+
+```
+
+```{r}
+p.cl.2wfe <- interplot(model.2wfe.cl, var1 = "reform_positive.lag", var2 = "clpol.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political civil liberties index (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+p.cl.ebal <- interplot(mm.elirreg.posreform.cl.all, var1 = "reform_positive.lag", var2 = "clpol.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political civil liberties index (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2) 
+
+png("./Plots/clpol 2wfe irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cl.2wfe
+dev.off()
+
+png("./Plots/clpol ebal irreg.png", height=5,
+    width=7, units="in", res=300)
+p.cl.ebal
+dev.off()
+```
+
+
+```{r}
+stargazer(model.2wfe.cl, mm.elirreg.posreform.cl.all,
+          digits = 2, omit = c("COW.factor", "COWcode", "year.factor", "year"),
+          type="html", out="./Drafts/appendix main results irreg clpol.html")
+
+```
+
+Changing sampling frame to be non-democracies in Cheibub
+
+```{r}
+vdem.nodems.cheibub <- read.csv("./vdem-2018-no-dems-cheibub-post1945-oct2020-condensed-tidy.csv")
+
+vdem.nodems.elections <- subset(vdem.nodems.cheibub, is.na(vdem.nodems.cheibub$v2elirreg.inv)==FALSE)
+
+###Coding presidential elections as majoritarian
+vdem.nodems.elections <- vdem.nodems.elections %>% mutate(v2elparlel = ifelse(elexec == 1, 0, v2elparlel))
+
+vdem.nodems.elections <- fastDummies::dummy_cols(vdem.nodems.elections, select_columns = "v2elparlel")
+
+vdem.nodems.elections$COW.factor <- factor(vdem.nodems.elections$COWcode)
+vdem.nodems.elections$year.factor <- factor(vdem.nodems.elections$year)
+
+vdem.nodems.elections <- vdem.nodems.elections %>% filter(parcomp.lag >= 0)
+vdem.nodems.elections <- vdem.nodems.elections %>% filter(is.na(reform_positive.lag) == F)
+```
+
+
+Elcomp
+
+```{r ebal elcomp, include=FALSE}
+myvars <- c("COW.factor", "year", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag", "v2elparlel_3", "purge.lag", "pack.lag",
+            "elcompindex.m.lag", "elcompindex.m.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "elcompindex.m.2lag", "lji.2lag",
+             "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+#stargazer(cbind(t.means, c.means.bal, c.means), type="html", 
+#          out="./Drafts/ebal adjusted means full data.html")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...25)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...25)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.elcomp.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        elcompindex.m.lag  + elexec +  v2elparlel_1 + v2elparlel_2 + 
+                                            #e_polity2 +
+                                        loggpdpc.lag + 
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                            reform_negative.lag + purge.lag + pack.lag+
+                                      COW.factor, 
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+#summary(elirreg.posreform.elcomp.base)
+
+
+mm.elirreg.posreform.elcomp.all <- lm(v2elirreg.inv~reform_positive.lag
+                                        + 
+                                          elcompindex.m.lag +
+                                      reform_positive.lag*elcompindex.m.lag
+                                      + elexec + v2elparlel_1 + v2elparlel_2 + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                              v2elintmon + 
+                                          reform_negative.lag+ purge.lag + pack.lag+
+                                     COW.factor,  
+                                            weights=ebal.test.w,
+                                            data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.elcomp.all)
+
+lrtest(elirreg.posreform.elcomp.base, mm.elirreg.posreform.elcomp.all)
+
+```
+
+```{r plot ebal elcomp}
+p2.elcomp.ch <- interplot(mm.elirreg.posreform.elcomp.all, var1="reform_positive.lag", var2="elcompindex.m.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political openness \n(1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   #No effect for fraud
+p2.elcomp.ch
+
+```
+
+Oversight
+
+```{r include=FALSE}
+### Legislative opposition oversight
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
+            "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "lji.2lag", "pack.lag", "purge.lag",
+            "opposition.oversight.lag", "opp.oversight.2lag", "urban.2lag", "v2elmulpar", "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag", "years.since.election",  "v2elparlel_1", "v2elparlel_2",  "v2elparlel_3")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "opp.oversight.2lag", "lji.2lag",
+            "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...27)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...27)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+
+###regression
+elirreg.posreform.oversight.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                               opposition.oversight.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2elintmon + 
+                                            v2elparlel_1 + v2elparlel_2 +  reform_negative.lag + purge.lag + pack.lag+
+                                         COW.factor#+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elirreg.posreform.oversight.base)
+
+
+mm.elirreg.posreform.oversight <- lm(v2elirreg.inv~reform_positive.lag +
+                                             opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                              v2elintmon + 
+                                              v2elparlel_1 + v2elparlel_2   + reform_negative.lag + purge.lag + pack.lag+
+ #+ transitional + altinfo.lag 
+                                      COW.factor, 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.oversight)
+
+```
+
+
+```{r}
+p2.legov.ch <- interplot(mm.elirreg.posreform.oversight, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Opposition oversight \n(1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   
+p2.legov.ch
+
+```
+
+
+Polcon
+
+```{r ebal polcon, include=FALSE}
+vdem.nodems.elections <- vdem.nodems.elections %>% mutate(scale.polcon.lag = log(h_polcon3.lag))
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "lji.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2",                        "h_polcon3.lag", "h_polcon3.2lag",
+             "urban.2lag",  "v2elintmon", "pack.lag", "purge.lag",
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "h_polcon3.2lag", "lji.2lag",
+             "loggpdpc.2lag", "urban.2lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+#stargazer(cbind(t.means, c.means.bal, c.means), type="html", 
+#          out="./Drafts/ebal adjusted means full data.html")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...25)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...25)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.polcon.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        h_polcon3.lag  + elexec +  v2elparlel_1 + v2elparlel_2  +
+                                            #e_polity2 +
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                           reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                      COW.factor, 
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+#summary(elirreg.posreform.polity.base)
+
+
+mm.elirreg.posreform.polcon.all <- lm(v2elirreg.inv~reform_positive.lag
+                                        + 
+                                          h_polcon3.lag +
+                                      reform_positive.lag*h_polcon3.lag
+                                      + elexec + v2elparlel_1 + v2elparlel_2  +
+                                              # e_polity2 +
+                                            #e_miurbani + 
+                                              v2elintmon + 
+                                               reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                     COW.factor,  
+                                            weights=ebal.test.w,
+                                            data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.polcon.all)
+
+
+```
+
+
+```{r plot ebal polcon}
+
+p4.polcon.ch <- interplot(mm.elirreg.posreform.polcon.all, var1="reform_positive.lag", var2="h_polcon3.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political constraints (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   
+p4.polcon.ch
+
+
+```
+
+
+Plot
+
+```{r}
+p.combined.ch <- cowplot::plot_grid(p2.elcomp.ch, p2.legov.ch, p4.polcon.ch, align = "hv", nrow = 2, label_size = 12, hjust = 0)
+p.combined.ch
+
+png("marginal effects plots combined cheibub", height=5,
+    width=7, units="in", res=300)
+p.combined.ch
+dev.off()
+```
+
+Table
+
+
+```{r}
+stargazer(mm.elirreg.posreform.elcomp.all, mm.elirreg.posreform.oversight,
+          mm.elirreg.posreform.polcon.all,
+          digits = 2, omit = c("COW.factor", "COWcode", "year.factor", "year"),
+          type="html", out="./Drafts/appendix results irreg cheibub.html")
+
+```
+
+##Entropy balancing using lagged fraud
+
+```{r ebal elcomp, include=FALSE}
+
+
+
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag",  "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2", "lji.2lag", "v2elparlel_3", "purge.lag", "pack.lag", "v2elirreg.inv.lag",
+            "elcompindex.m.lag", "elcompindex.m.2lag", "urban.2lag",  "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "elcompindex.m.2lag", "lji.2lag",
+             "loggpdpc.2lag", "urban.2lag", "v2elirreg.inv.lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+#stargazer(cbind(t.means, c.means.bal, c.means), type="html", 
+#          out="./Drafts/ebal adjusted means full data.html")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...25)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...25)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.elcomp.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        elcompindex.m.lag  + elexec +  v2elparlel_1 + v2elparlel_2 + 
+                                            #e_polity2 +
+                                        loggpdpc.lag + 
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                            reform_negative.lag + purge.lag + pack.lag+
+                                      COW.factor, 
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+#summary(elirreg.posreform.elcomp.base)
+
+
+mm.elirreg.posreform.elcomp.all <- lm(v2elirreg.inv~reform_positive.lag
+                                        + 
+                                          elcompindex.m.lag +
+                                      reform_positive.lag*elcompindex.m.lag
+                                      + elexec + v2elparlel_1 + v2elparlel_2 + 
+                                              # e_polity2 +
+                                          loggpdpc.lag + 
+                                              #e_miurbani + 
+                                              v2elintmon + 
+                                          reform_negative.lag+ purge.lag + pack.lag+
+                                     COW.factor,  
+                                            weights=ebal.test.w,
+                                            data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.elcomp.all)
+
+lrtest(elirreg.posreform.elcomp.base, mm.elirreg.posreform.elcomp.all)
+
+```
+
+```{r plot ebal elcomp}
+p2.elcomp.2 <- interplot(mm.elirreg.posreform.elcomp.all, var1="reform_positive.lag", var2="elcompindex.m.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political openness \n(1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   #No effect for fraud
+p2.elcomp.2
+```
+
+```{r include=FALSE}
+### Legislative opposition oversight
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", 
+            "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "lji.2lag", "pack.lag", "purge.lag", "v2elirreg.inv.lag",
+            "opposition.oversight.lag", "opp.oversight.2lag", "urban.2lag", "v2elmulpar", "v2elintmon", 
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag", "years.since.election",  "v2elparlel_1", "v2elparlel_2",  "v2elparlel_3")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "opp.oversight.2lag", "lji.2lag",
+            "loggpdpc.2lag", "urban.2lag", "v2elirreg.inv.lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...27)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...27)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+stargazer(cbind(t.means, c.means.bal, c.means), type="html", 
+          out="./Drafts/ebal adjusted means full data.html")
+
+###regression
+elirreg.posreform.oversight.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                               opposition.oversight.lag + elexec + 
+                                               #e_polity2 +
+                                           loggpdpc.lag + 
+                                               #e_miurbani + 
+                                               v2elintmon + 
+                                            v2elparlel_1 + v2elparlel_2 +  reform_negative.lag + purge.lag + pack.lag+
+                                         COW.factor#+ transitional + altinfo.lag
+                                             , weights=ebal.test.w,
+                                             data = dataset.matching.complete.w)
+#summary(elirreg.posreform.oversight.base)
+
+
+mm.elirreg.posreform.oversight <- lm(v2elirreg.inv~reform_positive.lag +
+                                             opposition.oversight.lag + reform_positive.lag*opposition.oversight.lag   + elexec + 
+                                             # e_polity2 +
+                                         loggpdpc.lag + 
+                                             #e_miurbani + 
+                                              v2elintmon + 
+                                              v2elparlel_1 + v2elparlel_2   + reform_negative.lag + purge.lag + pack.lag+
+ #+ transitional + altinfo.lag 
+                                      COW.factor, 
+                                           weights=ebal.test.w,
+                                           data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.oversight)
+
+```
+
+```{r}
+p2.legov.2 <- interplot(mm.elirreg.posreform.oversight, var1="reform_positive.lag", var2="opposition.oversight.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Opposition oversight \n(1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   
+p2.legov.2
+```
+
+```{r ebal polcon, include=FALSE}
+vdem.nodems.elections <- vdem.nodems.elections %>% mutate(scale.polcon.lag = log(h_polcon3.lag))
+myvars <- c("COW.factor", "year.factor", "transitional", "v2elirreg.inv", "v2elintim.inv", "lc.ind.2lag", "lji.2lag", "hc.ind.2lag", "oppaut.2lag", "elexec", "education.2lag",  "v2elparlel_1", "v2elparlel_2",                        "h_polcon3.lag", "h_polcon3.2lag", "v2elirreg.inv.lag",
+             "urban.2lag",  "v2elintmon", "pack.lag", "purge.lag",
+            "country_name", "reform_positive.lag", "loggpdpc.2lag", "reform_negative.lag",
+            "democracy.duration.2lag", "exec.respectcon.2lag", "leg.constraints.2lag", 
+            "altinfo.2lag", "loggpdpc.lag")  # "e_van_comp.lag  , "party.institutionalization.lag" ....... "parcomp.lag", "polcomp.lag"
+
+dataset.matching <- vdem.nodems.elections[myvars]
+dataset.matching.complete <- na.omit(dataset.matching)
+
+
+myvars <- c("democracy.duration.2lag", "oppaut.2lag",  "h_polcon3.2lag", "lji.2lag",
+             "loggpdpc.2lag", "urban.2lag", "v2elirreg.inv.lag",
+            "hc.ind.2lag",  "lc.ind.2lag", "transitional", "exec.respectcon.2lag", "altinfo.2lag", "education.2lag",
+            "leg.constraints.2lag")  #"lji.lag"
+ebal.covariates <- dataset.matching.complete[myvars]
+#ebal.covariates.var <- ebal.covariates
+
+ebal.test <- ebalance(Treatment=dataset.matching.complete$reform_positive.lag, X = ebal.covariates)
+
+
+
+# means in treatment group data
+t.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==1,],2,mean)
+# means in reweighted control group data
+c.means.bal <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,weighted.mean,w=ebal.test$w)
+# means in raw data control group data
+c.means <- apply(ebal.covariates[dataset.matching.complete$reform_positive.lag==0,],2,mean)
+#library(stargazer)
+#stargazer(cbind(t.means, c.means.bal, c.means), type="html", 
+#          out="./Drafts/ebal adjusted means full data.html")
+
+
+
+dataset.matching.complete.controls <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 0)
+dataset.matching.complete.controls <- data.frame(cbind(dataset.matching.complete.controls, ebal.test$w))
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% mutate(ebal.test.w = ...25)
+#dataset.matching.complete.controls <- dataset.matching.complete.controls %>% dplyr::select(-...25)
+
+
+dataset.matching.complete.treat <- subset(dataset.matching.complete, dataset.matching.complete$reform_positive.lag == 1)
+dataset.matching.complete.treat$ebal.test.w <- 1
+
+dataset.matching.complete.w <- bind_rows(dataset.matching.complete.treat, dataset.matching.complete.controls)
+
+
+###regression
+elirreg.posreform.polcon.base <- lm(v2elirreg.inv~reform_positive.lag +
+                                        
+                                        h_polcon3.lag  + elexec +  v2elparlel_1 + v2elparlel_2  +
+                                            #e_polity2 +
+                                            #e_miurbani + 
+                                            v2elintmon +  
+                                           reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                      COW.factor, 
+                                    weights=ebal.test.w,  
+                                    data = dataset.matching.complete.w)
+#summary(elirreg.posreform.polity.base)
+
+
+mm.elirreg.posreform.polcon.all <- lm(v2elirreg.inv~reform_positive.lag
+                                        + 
+                                          h_polcon3.lag +
+                                      reform_positive.lag*h_polcon3.lag
+                                      + elexec + v2elparlel_1 + v2elparlel_2  +
+                                              # e_polity2 +
+                                            #e_miurbani + 
+                                              v2elintmon + 
+                                               reform_negative.lag + loggpdpc.lag + purge.lag + pack.lag+
+                                     COW.factor,  
+                                            weights=ebal.test.w,
+                                            data = dataset.matching.complete.w)
+#summary(mm.elirreg.posreform.polcon.all)
+
+
+```
+
+
+```{r plot ebal polcon}
+p4.polcon.2 <- interplot(mm.elirreg.posreform.polcon.all, var1="reform_positive.lag", var2="h_polcon3.lag",
+                hist=TRUE, adjCI = TRUE) + theme_bw() + labs(x="Political constraints (1-year lag)", y="Marginal effect") +
+  geom_hline(yintercept=0, linetype=2)   
+p4.polcon.2
+
+```
+
+```{r combining me plots}
+p.combined.ebal2 <- cowplot::plot_grid(p2.elcomp.2, p2.legov.2, p4.polcon.2, align = "hv", nrow = 2, label_size = 12, hjust = 0)
+p.combined.ebal2
+
+png("./Plots/marginal effects plots combined ebal lagged fraud.png", height=5,
+    width=7, units="in", res=300)
+p.combined.ebal2
+dev.off()
+```
+
+```{r}
+#Entropy balanced
+stargazer(mm.elirreg.posreform.elcomp.all, mm.elirreg.posreform.oversight, mm.elirreg.posreform.polcon.all,
+          digits = 2, omit = c("COW.factor", "COWcode", "year.factor", "year"),
+          type="html", out="./Drafts/main results irreg ebal lag fraud.html")
+
+```

@@ -10,6 +10,7 @@ library(Zelig)
 
 rm(list = setdiff(ls(), lsf.str())) #Remove all except functions
 
+
 ####Loading and merging data####
 vdem <- read.csv("C:/Users/Cole/Documents/Grad school/Research topics/V-Dem/VDem7.1/Country_Year_V-Dem_other_CSV_v7.1/V-Dem-DS-CY+Others-v7.1.csv")
 
